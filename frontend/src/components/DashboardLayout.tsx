@@ -24,7 +24,7 @@ import {
 
 const sidebarItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
-  { label: "Projects", icon: FolderOpen, path: "/dashboard" },
+  { label: "Projects", icon: FolderOpen, path: "/projects" },
   { label: "Assets", icon: Image, path: "/assets" },
   { label: "Team", icon: Users, path: "/team" },
   { label: "Billing", icon: CreditCard, path: "/billing" },
