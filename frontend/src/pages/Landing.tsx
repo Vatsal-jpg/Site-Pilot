@@ -16,19 +16,84 @@ gsap.registerPlugin(ScrollTrigger);
 
 const features = [
   {
-    icon: Zap,
-    title: "AI-Powered",
-    desc: "Generate layouts, copy, and images with AI. Just describe your idea.",
+    icon: Building2,
+    title: "Multi-Tenant Architecture",
+    desc: "Securely manage multiple organizations on a single platform with strict data isolation.",
+    points: [
+      "Tenant-level isolation",
+      "Multiple websites per organization",
+      "Plan-based limits enforced automatically",
+    ],
   },
   {
-    icon: Building2,
-    title: "Multi-Tenant",
-    desc: "Manage multiple websites for your organization from one dashboard.",
+    icon: Zap,
+    title: "AI-Powered Website Builder",
+    desc: "Use AI to generate layouts, page structures, and starter content from simple prompts.",
+    points: [
+      "Business-type based generation",
+      "Smart layout & navigation suggestions",
+      "Accessibility-aware design assistance",
+    ],
   },
   {
     icon: Globe,
-    title: "Instant Publishing",
-    desc: "Go live instantly with SSL, domains, and hosting included.",
+    title: "Structured Site Creation",
+    desc: "Build websites using reusable components with draft, preview, and publish workflows.",
+    points: [
+      "Page & navigation management",
+      "Reusable sections & components",
+      "Draft → live deployment flow",
+    ],
+  },
+  {
+    icon: Zap,
+    title: "Branding & Asset Management",
+    desc: "Define consistent branding across all websites with centralized asset management.",
+    points: [
+      "Colors, fonts, logos per tenant",
+      "Central asset library",
+      "Storage limits by plan",
+    ],
+  },
+  {
+    icon: Globe,
+    title: "Domain & Deployment",
+    desc: "Deploy sites instantly using default URLs or custom domains with controlled publishing.",
+    points: [
+      "Default hosted URLs",
+      "Custom domain support",
+      "Deployment history tracking",
+    ],
+  },
+  {
+    icon: Building2,
+    title: "Role-Based Access Control",
+    desc: "Control who can edit content, manage domains, or view billing using defined roles.",
+    points: [
+      "Owner, admin, editor roles",
+      "Permission-based actions",
+      "Secure authorization checks",
+    ],
+  },
+  {
+    icon: Zap,
+    title: "Usage Monitoring & Insights",
+    desc: "Track usage, performance, and limits through tenant-level dashboards.",
+    points: [
+      "Website & asset usage",
+      "AI credit consumption",
+      "Upgrade recommendations",
+    ],
+  },
+  {
+    icon: Building2,
+    title: "Subscription & Billing",
+    desc: "Flexible plans with automatic feature unlocking and usage enforcement.",
+    points: [
+      "Plan upgrades & downgrades",
+      "Feature entitlements by plan",
+      "Billing visibility & renewals",
+    ],
   },
 ];
 
@@ -74,7 +139,8 @@ const Landing = () => {
   const pricingRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // HERO ANIMATION
+  const ctx = gsap.context(() => {
+    // HERO
     gsap.from(heroRef.current, {
       opacity: 0,
       y: 40,
@@ -91,32 +157,45 @@ const Landing = () => {
       ease: "sine.inOut",
     });
 
-    // FEATURES SCROLL
-    gsap.from(".feature-card", {
-      scrollTrigger: {
-        trigger: featureRef.current,
-        start: "top 80%",
-      },
-      opacity: 0,
-      y: 40,
-      stagger: 0.2,
-      duration: 0.8,
-      ease: "power2.out",
-    });
+    // ✅ FIXED FEATURES
+    gsap.fromTo(
+      ".feature-card",
+      { opacity: 0, y: 40 },
+      {
+        opacity: 1,
+        y: 0,
+        duration: 0.8,
+        stagger: 0.2,
+        ease: "power2.out",
+        scrollTrigger: {
+          trigger: featureRef.current,
+          start: "top 85%",
+          once: true, // IMPORTANT
+        },
+      }
+    );
 
-    // PRICING SCROLL
-    gsap.from(".pricing-card", {
-      scrollTrigger: {
-        trigger: pricingRef.current,
-        start: "top 80%",
-      },
-      opacity: 0,
-      scale: 0.95,
-      stagger: 0.2,
-      duration: 0.8,
-      ease: "power2.out",
-    });
-  }, []);
+    // PRICING
+    gsap.fromTo(
+      ".pricing-card",
+      { opacity: 0, scale: 0.95 },
+      {
+        opacity: 1,
+        scale: 1,
+        duration: 0.8,
+        stagger: 0.2,
+        ease: "power2.out",
+        scrollTrigger: {
+          trigger: pricingRef.current,
+          start: "top 85%",
+          once: true,
+        },
+      }
+    );
+  });
+
+  return () => ctx.revert();
+}, []);
 
   return (
     <div className="min-h-screen bg-white text-slate-900 overflow-x-hidden">
@@ -184,41 +263,57 @@ const Landing = () => {
       </section>
 
       {/* FEATURES */}
-      <section
-        id="features"
-        ref={featureRef}
-        className="py-24 bg-[#fafafa]"
-      >
-        <div className="mx-auto max-w-7xl px-4">
-          <h2 className="text-center text-3xl font-semibold tracking-tight">
-            Everything you need to build fast
-          </h2>
-          <p className="mt-3 text-center text-sm text-slate-500">
-            Powerful tools designed for modern teams.
-          </p>
+      <section id="features" ref={featureRef} className="py-28 bg-[#fafafa]">
+  <div className="mx-auto max-w-7xl px-4">
+    
+    {/* Heading */}
+    <div className="max-w-2xl mx-auto text-center">
+      <h2 className="text-3xl font-semibold tracking-tight">
+        Built for scale, simplicity, and speed
+      </h2>
+      <p className="mt-3 text-sm text-slate-500">
+        Everything you need to build, manage, and scale websites across organizations.
+      </p>
+    </div>
 
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {features.map((f) => (
-              <Card
-                key={f.title}
-                className="feature-card rounded-xl bg-white border shadow-sm"
-              >
-                <CardHeader>
-                  <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <f.icon className="h-5 w-5 text-primary" />
-                  </div>
-                  <CardTitle className="text-base font-semibold tracking-tight">
-  {f.title}
-</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm leading-relaxed text-slate-600">{f.desc}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+    {/* Feature Cards */}
+    <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {features.map((f) => (
+        <Card
+          key={f.title}
+          className="feature-card relative overflow-hidden rounded-xl border bg-white shadow-sm hover:shadow-md transition hover:-translate-y-1"
+        >
+          {/* Accent bar */}
+          <div className="absolute left-0 top-0 h-full w-1 bg-primary/70" />
+
+          <CardHeader className="flex flex-col items-center text-center px-8 pt-8">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center
+                rounded-full bg-primary/10">
+              <f.icon className="h-5 w-5 text-primary" />
+            </div>
+            <CardTitle className="text-base font-semibold tracking-tight">
+              {f.title}
+            </CardTitle>
+            <CardDescription className="text-sm text-slate-600">
+              {f.desc}
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="pl-6 pt-0">
+            <ul className="mt-4 space-y-2 text-sm text-slate-600">
+              {f.points.map((p) => (
+                <li key={p} className="flex items-start gap-2">
+                  <Check className="mt-1 h-4 w-4 text-primary" />
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  </div>
+</section>
 
       {/* PRICING */}
       <section
