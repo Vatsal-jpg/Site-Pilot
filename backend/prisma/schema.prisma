@@ -7,6 +7,230 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Tenant {
+  id               String    @id @default(cuid())
+  orgName          String
+  slug             String    @unique
+  plan             Plan      @default(starter)
+  storageUsedBytes BigInt    @default(0)
+  aiCreditsUsed    Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  aiUsage          AIUsage[]
+  assets           Asset[]
+  invites          Invite[]
+  projects         Project[]
+  users            User[]
+}
+
+model User {
+  id           String          @id @default(cuid())
+  tenantId     String
+  name         String
+  email        String          @unique
+  passwordHash String
+  role         UserRole        @default(editor)
+  createdAt    DateTime        @default(now())
+  aiUsage      AIUsage[]
+  deployments  Deployment[]
+  invitesSent  Invite[]        @relation("InvitedBy")
+  projects     ProjectMember[]
+  tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  versions     Version[]
+}
+
+model Component {
+  id                 String              @id
+  name               String
+  category           ComponentCategory
+  description        String?
+  thumbnailUrl       String
+  requiredPlan       Plan                @default(starter)
+  propsSchema        Json
+  defaultProps       Json
+  sortOrder          Int                 @default(0)
+  isActive           Boolean             @default(true)
+  pageComponents     PageComponent[]
+  templateComponents TemplateComponent[]
+}
+
+model Template {
+  id                 String              @id @default(cuid())
+  name               String
+  category           String
+  thumbnailUrl       String
+  previewUrl         String
+  requiredPlan       Plan                @default(starter)
+  isActive           Boolean             @default(true)
+  sortOrder          Int                 @default(0)
+  projects           Project[]
+  templateComponents TemplateComponent[]
+}
+
+model TemplateComponent {
+  id           String    @id @default(cuid())
+  templateId   String
+  componentId  String
+  pageSlug     String
+  pageTitle    String
+  pageNavOrder Int
+  orderIndex   Int
+  defaultProps Json
+  component    Component @relation(fields: [componentId], references: [id])
+  template     Template  @relation(fields: [templateId], references: [id])
+}
+
+model Project {
+  id             String           @id @default(cuid())
+  tenantId       String
+  templateId     String?
+  name           String
+  slug           String
+  status         ProjectStatus    @default(draft)
+  liveUrl        String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  aiUsage        AIUsage[]
+  assets         Asset[]
+  deployments    Deployment[]
+  pages          Page[]
+  pageComponents PageComponent[]
+  template       Template?        @relation(fields: [templateId], references: [id])
+  tenant         Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branding       ProjectBranding?
+  members        ProjectMember[]
+  versions       Version[]
+
+  @@unique([tenantId, slug])
+}
+
+model ProjectBranding {
+  id             String  @id @default(cuid())
+  projectId      String  @unique
+  primaryColor   String  @default("#1a1a2e")
+  secondaryColor String  @default("#e94560")
+  accentColor    String  @default("#f5a623")
+  bgColor        String  @default("#ffffff")
+  headingFont    String  @default("Inter")
+  bodyFont       String  @default("Inter")
+  logoUrl        String?
+  heroImageUrl   String?
+  businessName   String?
+  tagline        String?
+  description    String?
+  businessType   String?
+  project        Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Page {
+  id          String          @id @default(cuid())
+  projectId   String
+  title       String
+  slug        String
+  navOrder    Int
+  isPublished Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  components  PageComponent[]
+
+  @@unique([projectId, slug])
+}
+
+model PageComponent {
+  id          String    @id @default(cuid())
+  pageId      String
+  projectId   String
+  componentId String
+  orderIndex  Int
+  props       Json
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  component   Component @relation(fields: [componentId], references: [id])
+  page        Page      @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([pageId, orderIndex])
+}
+
+model Asset {
+  id         String    @id @default(cuid())
+  tenantId   String
+  projectId  String?
+  b2Key      String
+  b2Url      String
+  fileName   String
+  sizeBytes  BigInt
+  assetType  AssetType @default(general)
+  uploadedBy String?
+  createdAt  DateTime  @default(now())
+  project    Project?  @relation(fields: [projectId], references: [id])
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model Version {
+  id          String       @id @default(cuid())
+  projectId   String
+  label       String
+  snapshot    Json
+  createdById String
+  createdAt   DateTime     @default(now())
+  deployments Deployment[]
+  createdBy   User         @relation(fields: [createdById], references: [id])
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Deployment {
+  id           String           @id @default(cuid())
+  projectId    String
+  versionId    String
+  status       DeploymentStatus @default(deploying)
+  b2Path       String?
+  liveUrl      String?
+  deployedById String
+  deployedAt   DateTime         @default(now())
+  deployedBy   User             @relation(fields: [deployedById], references: [id])
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  version      Version          @relation(fields: [versionId], references: [id])
+}
+
+model ProjectMember {
+  projectId String
+  userId    String
+  role      UserRole @default(editor)
+  invitedBy String?
+  joinedAt  DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, userId])
+}
+
+model Invite {
+  id          String   @id @default(cuid())
+  tenantId    String
+  email       String
+  role        UserRole @default(editor)
+  token       String   @unique @default(cuid())
+  invitedById String
+  accepted    Boolean  @default(false)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  invitedBy   User     @relation("InvitedBy", fields: [invitedById], references: [id])
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model AIUsage {
+  id         String   @id @default(cuid())
+  tenantId   String
+  projectId  String?
+  userId     String
+  action     AIAction
+  tokensUsed Int
+  createdAt  DateTime @default(now())
+  project    Project? @relation(fields: [projectId], references: [id])
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id])
+}
 
 enum Plan {
   starter
@@ -53,306 +277,3 @@ enum AIAction {
   generate_content
   improve_component
 }
-
-// ─────────────────────────────────────────
-// TENANT + USERS
-// ─────────────────────────────────────────
-
-model Tenant {
-  id                  String    @id @default(cuid())
-  orgName             String
-  slug                String    @unique
-  plan                Plan      @default(starter)
-  storageUsedBytes    BigInt    @default(0)
-  aiCreditsUsed       Int       @default(0)
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  users               User[]
-  projects            Project[]
-  assets              Asset[]
-  invites             Invite[]
-  aiUsage             AIUsage[]
-}
-
-model User {
-  id                  String    @id @default(cuid())
-  tenantId            String
-  name                String
-  email               String    @unique
-  passwordHash        String
-  role                UserRole  @default(editor)
-  createdAt           DateTime  @default(now())
-
-  tenant              Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  projects            ProjectMember[]
-  versions            Version[]
-  deployments         Deployment[]
-  aiUsage             AIUsage[]
-  invitesSent         Invite[]  @relation("InvitedBy")
-}
-
-
-model Component {
-  id                  String            @id // e.g. "hero_with_cta", "gallery", "navbar"
-  name                String            // e.g. "Hero with CTA"
-  category            ComponentCategory
-  description         String?
-  thumbnailUrl        String            // B2 URL showing preview image of component
-  requiredPlan        Plan              @default(starter)
-  propsSchema         Json              // defines what props this component accepts
-  defaultProps        Json              // sensible default values for all props
-  sortOrder           Int               @default(0)
-  isActive            Boolean           @default(true)
-
-  pageComponents      PageComponent[]
-  templateComponents  TemplateComponent[]
-}
-
-// Example propsSchema for hero_with_cta:
-// {
-//   "heading":         { "type": "string", "label": "Heading" },
-//   "subheading":      { "type": "string", "label": "Subheading" },
-//   "buttonLabel":     { "type": "string", "label": "Button Text" },
-//   "buttonLink":      { "type": "string", "label": "Button URL" },
-//   "backgroundImage": { "type": "image",  "label": "Background Image" },
-//   "textAlign":       { "type": "enum",   "options": ["left","center","right"] }
-// }
-
-// Example defaultProps for hero_with_cta:
-// {
-//   "heading":         "Welcome to Our Website",
-//   "subheading":      "We're glad you're here",
-//   "buttonLabel":     "Get Started",
-//   "buttonLink":      "/contact",
-//   "backgroundImage": null,
-//   "textAlign":       "center"
-// }
-
-// ─────────────────────────────────────────
-// TEMPLATE LIBRARY (your company manages)
-// ─────────────────────────────────────────
-
-model Template {
-  id                  String    @id @default(cuid())
-  name                String
-  category            String    // "business", "restaurant", "portfolio" etc
-  thumbnailUrl        String    // B2 URL - shown in template selection grid
-  previewUrl          String    // URL of pre-deployed demo site on B2 static hosting
-  requiredPlan        Plan      @default(starter)
-  isActive            Boolean   @default(true)
-  sortOrder           Int       @default(0)
-
-  templateComponents  TemplateComponent[]
-  projects            Project[]
-}
-
-// Defines which components a template uses by default
-// and what default content they have
-model TemplateComponent {
-  id                  String    @id @default(cuid())
-  templateId          String
-  componentId         String
-  pageSlug            String    // which page this goes on: "home", "about", "contact"
-  pageTitle           String    // display name of that page
-  pageNavOrder        Int       // order in navbar
-  orderIndex          Int       // position on that page
-  defaultProps        Json      // template-specific defaults (overrides component defaults)
-
-  template            Template  @relation(fields: [templateId], references: [id])
-  component           Component @relation(fields: [componentId], references: [id])
-}
-
-// ─────────────────────────────────────────
-// PROJECTS
-// ─────────────────────────────────────────
-
-model Project {
-  id                  String          @id @default(cuid())
-  tenantId            String
-  templateId          String?
-  name                String
-  slug                String
-  status              ProjectStatus   @default(draft)
-  liveUrl             String?
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
-
-  tenant              Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  template            Template?       @relation(fields: [templateId], references: [id])
-  branding            ProjectBranding?
-  pages               Page[]
-  pageComponents      PageComponent[]
-  assets              Asset[]
-  versions            Version[]
-  deployments         Deployment[]
-  members             ProjectMember[]
-  aiUsage             AIUsage[]
-
-  @@unique([tenantId, slug])
-}
-
-model ProjectBranding {
-  id                  String    @id @default(cuid())
-  projectId           String    @unique
-  primaryColor        String    @default("#1a1a2e")
-  secondaryColor      String    @default("#e94560")
-  accentColor         String    @default("#f5a623")
-  bgColor             String    @default("#ffffff")
-  headingFont         String    @default("Inter")
-  bodyFont            String    @default("Inter")
-  logoUrl             String?
-  heroImageUrl        String?
-  businessName        String?
-  tagline             String?
-  description         String?
-  businessType        String?
-
-  project             Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-}
-
-// ─────────────────────────────────────────
-// PAGES + COMPONENTS (the actual website)
-// ─────────────────────────────────────────
-
-model Page {
-  id                  String    @id @default(cuid())
-  projectId           String
-  title               String    // "Home", "About", "Contact"
-  slug                String    // "home", "about", "contact"
-  navOrder            Int       // position in navbar
-  isPublished         Boolean   @default(true)
-  createdAt           DateTime  @default(now())
-
-  project             Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  components          PageComponent[]
-
-  @@unique([projectId, slug])
-}
-
-// This is the heart of the builder
-// Each row = one component instance on one page
-model PageComponent {
-  id                  String    @id @default(cuid())
-  pageId              String
-  projectId           String
-  componentId         String
-  orderIndex          Int       // position on page, 1 = top
-  props               Json      // actual content filled in by user
-                                // e.g. { heading: "Welcome to Acme", buttonLabel: "Contact Us" }
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  page                Page      @relation(fields: [pageId], references: [id], onDelete: Cascade)
-  project             Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  component           Component @relation(fields: [componentId], references: [id])
-
-  @@index([pageId, orderIndex])
-}
-
-// ─────────────────────────────────────────
-// ASSETS
-// ─────────────────────────────────────────
-
-model Asset {
-  id                  String    @id @default(cuid())
-  tenantId            String
-  projectId           String?
-  b2Key               String    // key/path inside B2 bucket
-  b2Url               String    // full public URL
-  fileName            String
-  sizeBytes           BigInt
-  assetType           AssetType @default(general)
-  uploadedBy          String?
-  createdAt           DateTime  @default(now())
-
-  tenant              Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  project             Project?  @relation(fields: [projectId], references: [id])
-}
-
-// ─────────────────────────────────────────
-// VERSIONS (snapshot-based, no Git needed)
-// ─────────────────────────────────────────
-
-model Version {
-  id                  String    @id @default(cuid())
-  projectId           String
-  label               String    // "v1 - Initial", "v3 - Updated hero"
-  snapshot            Json      // complete copy of all pages + pageComponents at that moment
-  createdById         String
-  createdAt           DateTime  @default(now())
-
-  project             Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdBy           User      @relation(fields: [createdById], references: [id])
-  deployments         Deployment[]
-}
-
-// ─────────────────────────────────────────
-// DEPLOYMENTS
-// ─────────────────────────────────────────
-
-model Deployment {
-  id                  String            @id @default(cuid())
-  projectId           String
-  versionId           String
-  status              DeploymentStatus  @default(deploying)
-  b2Path              String?           // path in B2 where files were pushed
-  liveUrl             String?
-  deployedById        String
-  deployedAt          DateTime          @default(now())
-
-  project             Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  version             Version           @relation(fields: [versionId], references: [id])
-  deployedBy          User              @relation(fields: [deployedById], references: [id])
-}
-
-// ─────────────────────────────────────────
-// RBAC — PROJECT MEMBERS
-// ─────────────────────────────────────────
-
-model ProjectMember {
-  projectId           String
-  userId              String
-  role                UserRole  @default(editor)
-  invitedBy           String?
-  joinedAt            DateTime  @default(now())
-
-  project             Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([projectId, userId])
-}
-
-model Invite {
-  id                  String    @id @default(cuid())
-  tenantId            String
-  email               String
-  role                UserRole  @default(editor)
-  token               String    @unique @default(cuid())
-  invitedById         String
-  accepted            Boolean   @default(false)
-  expiresAt           DateTime
-  createdAt           DateTime  @default(now())
-
-  tenant              Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  invitedBy           User      @relation("InvitedBy", fields: [invitedById], references: [id])
-}
-
-// ─────────────────────────────────────────
-// AI USAGE TRACKING
-// ─────────────────────────────────────────
-
-model AIUsage {
-  id                  String    @id @default(cuid())
-  tenantId            String
-  projectId           String?
-  userId              String
-  action              AIAction
-  tokensUsed          Int
-  createdAt           DateTime  @default(now())
-
-  tenant              Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  project             Project?  @relation(fields: [projectId], references: [id])
-  user                User      @relation(fields: [userId], references: [id])
-}
-
