@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,13 +10,15 @@ import {
 } from "@/components/ui/card";
 import { Check, Zap, Globe, Building2, ArrowRight } from "lucide-react";
 import { gsap } from "gsap";
-// gsap.registerPlugin(ScrambleTextPlugin) 
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const features = [
   {
     icon: Zap,
     title: "AI-Powered",
-    desc: "Let AI generate layouts, copy, and images. Just describe what you want.",
+    desc: "Generate layouts, copy, and images with AI. Just describe your idea.",
   },
   {
     icon: Building2,
@@ -24,8 +27,8 @@ const features = [
   },
   {
     icon: Globe,
-    title: "Publish Instantly",
-    desc: "Go live in seconds with custom domains and SSL included.",
+    title: "Instant Publishing",
+    desc: "Go live instantly with SSL, domains, and hosting included.",
   },
 ];
 
@@ -35,11 +38,9 @@ const plans = [
     price: "Free",
     features: [
       "1 website",
-      "3 pages per site",
+      "3 pages",
       "500MB storage",
-      "Basic templates",
-      "50 AI credits/month",
-      "No custom domain",
+      "50 AI credits",
     ],
     highlighted: false,
   },
@@ -50,9 +51,7 @@ const plans = [
       "5 websites",
       "Unlimited pages",
       "5GB storage",
-      "All templates",
-      "500 AI credits/month",
-      "Custom domain",
+      "500 AI credits",
     ],
     highlighted: true,
   },
@@ -63,46 +62,71 @@ const plans = [
       "Unlimited websites",
       "Unlimited pages",
       "50GB storage",
-      "All templates",
       "Unlimited AI",
-      "Custom domain + priority support",
     ],
     highlighted: false,
   },
 ];
 
 const Landing = () => {
-  return (
-    <div className="relative min-h-screen overflow-x-hidden text-white">
-      
-      <video
-        autoPlay
-        muted
-        loop
-        playsInline
-        className="fixed inset-0 -z-20 h-full w-full object-cover"
-      >
-        <source src="/bg-video.mp4" type="video/mp4" />
-      </video>
+  const heroRef = useRef<HTMLDivElement>(null);
+  const featureRef = useRef<HTMLDivElement>(null);
+  const pricingRef = useRef<HTMLDivElement>(null);
 
-      {/* OVERLAY */}
-      <div className="fixed inset-0 -z-10 bg-black/70 backdrop-blur-sm" />
+  useEffect(() => {
+    // HERO ANIMATION
+    gsap.from(heroRef.current, {
+      opacity: 0,
+      y: 40,
+      duration: 1.2,
+      ease: "power3.out",
+    });
+
+    // FLOATING IMAGES
+    gsap.to(".float", {
+      y: -15,
+      duration: 4,
+      repeat: -1,
+      yoyo: true,
+      ease: "sine.inOut",
+    });
+
+    // FEATURES SCROLL
+    gsap.from(".feature-card", {
+      scrollTrigger: {
+        trigger: featureRef.current,
+        start: "top 80%",
+      },
+      opacity: 0,
+      y: 40,
+      stagger: 0.2,
+      duration: 0.8,
+      ease: "power2.out",
+    });
+
+    // PRICING SCROLL
+    gsap.from(".pricing-card", {
+      scrollTrigger: {
+        trigger: pricingRef.current,
+        start: "top 80%",
+      },
+      opacity: 0,
+      scale: 0.95,
+      stagger: 0.2,
+      duration: 0.8,
+      ease: "power2.out",
+    });
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-white text-slate-900 overflow-x-hidden">
 
       {/* NAVBAR */}
-      <nav className="border-b border-white/10 bg-white/5 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 lg:px-8">
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-bold">SitePilot</span>
-          </div>
-
-          <div className="hidden items-center gap-8 md:flex text-gray-300">
-            <a href="#features" className="hover:text-white">Features</a>
-            <a href="#pricing" className="hover:text-white">Pricing</a>
-            <a href="#templates" className="hover:text-white">Templates</a>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Button asChild>
+      <nav className="sticky top-0 z-50 border-b bg-white/80 backdrop-blur">
+        <div className="mx-auto max-w-7xl px-4 h-16 flex items-center justify-between">
+          <span className="text-lg font-bold">SitePilot</span>
+          <div className="flex gap-3">
+            <Button variant="ghost" asChild>
               <Link to="/login">Login</Link>
             </Button>
             <Button asChild>
@@ -113,52 +137,82 @@ const Landing = () => {
       </nav>
 
       {/* HERO */}
-      <section className="py-24 lg:py-36 text-center">
-        <div className="mx-auto max-w-4xl px-4">
-          <h1 className="text-2xl font-bold sm:text-5xl lg:text-6xl">
-            Build your website with AI in minutes
-          </h1>
-          <p className="mt-6 text-lg text-gray-300 max-w-2xl mx-auto">
-            SitePilot gives your organization a complete website builder powered
-            by AI. No code. No designers. Just results.
-          </p>
-          <div className="mt-10 flex flex-wrap justify-center gap-4">
-            <Button size="lg" asChild>
-              <Link to="/signup">
-                Get Started <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-            <Button size="lg"  asChild>
-              <a href="#templates">View Templates</a>
-            </Button>
+      <section className="py-24 lg:py-32">
+        <div
+          ref={heroRef}
+          className="mx-auto max-w-7xl px-4 grid gap-12 lg:grid-cols-2 items-center"
+        >
+          {/* TEXT */}
+          <div>
+            <h1 className="text-4xl font-extrabold tracking-tight leading-[1.05]
+               sm:text-5xl lg:text-6xl">
+              Build your website <br />
+              <span className="text-primary font-extrabold">with AI in minutes</span>
+            </h1>
+            <p className="mt-6 max-w-xl text-lg text-slate-600">
+              SitePilot helps teams design, launch, and scale websites
+              without designers or developers.
+            </p>
+            <div className="mt-8 flex gap-4">
+              <Button size="lg" asChild>
+                <Link to="/signup">
+                  Get Started <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild>
+                <a href="#features">See Features</a>
+              </Button>
+            </div>
+          </div>
+
+          {/* IMAGES */}
+          <div className="relative">
+            <img
+              src="/img1.png"
+              className="rounded-xl shadow-xl"
+            />
+            <img
+              src="/img2.png"
+              className="float absolute -top-10 -left-10 w-48 rounded-lg shadow-lg"
+            />
+            <img
+              src="/img3.png"
+              className="float absolute -bottom-10 -right-10 w-48 rounded-lg shadow-lg"
+            />
           </div>
         </div>
       </section>
 
       {/* FEATURES */}
-      <section id="features" className="py-20 border-t border-white/10">
-        <div className="mx-auto max-w-7xl px-4 lg:px-8">
-          <h2 className="text-center text-3xl font-bold">
+      <section
+        id="features"
+        ref={featureRef}
+        className="py-24 bg-[#fafafa]"
+      >
+        <div className="mx-auto max-w-7xl px-4">
+          <h2 className="text-center text-3xl font-semibold tracking-tight">
             Everything you need to build fast
           </h2>
-          <p className="mt-4 text-center text-gray-300">
-            Powerful features to get your website live in minutes.
+          <p className="mt-3 text-center text-sm text-slate-500">
+            Powerful tools designed for modern teams.
           </p>
 
           <div className="mt-12 grid gap-6 md:grid-cols-3">
             {features.map((f) => (
               <Card
                 key={f.title}
-                className="rounded-xl bg-white/10 backdrop-blur-md border border-white/10 text-white"
+                className="feature-card rounded-xl bg-white border shadow-sm"
               >
                 <CardHeader>
-                  <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600/20">
-                    <f.icon className="h-5 w-5 text-blue-400" />
+                  <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    <f.icon className="h-5 w-5 text-primary" />
                   </div>
-                  <CardTitle>{f.title}</CardTitle>
+                  <CardTitle className="text-base font-semibold tracking-tight">
+  {f.title}
+</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-300">{f.desc}</p>
+                  <p className="text-sm leading-relaxed text-slate-600">{f.desc}</p>
                 </CardContent>
               </Card>
             ))}
@@ -166,31 +220,31 @@ const Landing = () => {
         </div>
       </section>
 
-      
-
       {/* PRICING */}
-      <section id="pricing" className="py-20 border-t border-white/10">
-        <div className="mx-auto max-w-7xl px-4 lg:px-8">
-          <h2 className="text-center text-3xl font-bold">
+      <section
+        id="pricing"
+        ref={pricingRef}
+        className="py-24 bg-white"
+      >
+        <div className="mx-auto max-w-7xl px-4">
+          <h2 className="text-center text-3xl font-semibold tracking-tight">
             Simple, transparent pricing
           </h2>
-          <p className="mt-4 text-center text-gray-300">
-            Start free. Upgrade when you need more.
+          <p className="mt-3 text-center text-sm text-slate-500">
+            Start free. Upgrade when you grow.
           </p>
 
           <div className="mt-12 grid gap-6 md:grid-cols-3">
             {plans.map((plan) => (
               <Card
                 key={plan.name}
-                className={`rounded-xl bg-white/10 backdrop-blur-md border border-white/10 text-white ${
-                  plan.highlighted
-                    ? "border-blue-500 ring-1 ring-blue-500/40"
-                    : ""
+                className={`pricing-card rounded-xl border bg-white shadow-sm ${
+                  plan.highlighted ? "ring-2 ring-primary" : ""
                 }`}
               >
                 <CardHeader>
                   <CardTitle>{plan.name}</CardTitle>
-                  <CardDescription className="text-2xl font-bold text-white">
+                  <CardDescription className="text-2xl font-bold">
                     {plan.price}
                   </CardDescription>
                 </CardHeader>
@@ -199,19 +253,14 @@ const Landing = () => {
                     {plan.features.map((f) => (
                       <li
                         key={f}
-                        className="flex items-center gap-2 text-sm text-gray-300"
+                        className="flex items-center gap-2 text-sm text-slate-600"
                       >
-                        <Check className="h-4 w-4 text-blue-400" />
+                        <Check className="h-4 w-4 text-primary" />
                         {f}
                       </li>
                     ))}
                   </ul>
-
-                  <Button
-                    className="mt-6 w-full"
-                    // variant={plan.highlighted ? "default" : "outline"}
-                    asChild
-                  >
+                  <Button className="mt-6 w-full" asChild>
                     <Link to="/signup">Get Started</Link>
                   </Button>
                 </CardContent>
@@ -222,30 +271,12 @@ const Landing = () => {
       </section>
 
       {/* FOOTER */}
-      <footer className="border-t border-white/10 py-12">
-        <div className="mx-auto max-w-7xl px-4 lg:px-8">
-          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row text-gray-300">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-white">
-                SitePilot
-              </span>
-            </div>
-
-            <div className="flex gap-6 text-sm">
-              <a href="#features" className="hover:text-white">
-                Features
-              </a>
-              <a href="#pricing" className="hover:text-white">
-                Pricing
-              </a>
-              <a href="#templates" className="hover:text-white">
-                Templates
-              </a>
-            </div>
-
-            <p className="text-xs">
-              © 2026 SitePilot. All rights reserved.
-            </p>
+      <footer className="border-t py-12">
+        <div className="mx-auto max-w-7xl px-4 flex justify-between text-sm text-slate-500">
+          <span>© 2026 SitePilot</span>
+          <div className="flex gap-6">
+            <a href="#features">Features</a>
+            <a href="#pricing">Pricing</a>
           </div>
         </div>
       </footer>

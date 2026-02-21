@@ -5,107 +5,79 @@ const prisma = new PrismaClient();
 async function main() {
     console.log("Start seeding...");
 
-    // 1. Components
-    const components = [
-        {
-            id: "navbar",
-            name: "Navigation Bar",
-            category: "layout",
-            thumbnailUrl: "https://f005.backblazeb2.com/file/sitepilot-assets/placeholders/navbar-thumb.png",
-            requiredPlan: "starter",
-            propsSchema: {
-                logoUrl: { type: "image", label: "Logo URL" },
-                links: {
-                    type: "array",
-                    label: "Navigation Links",
-                    items: {
-                        type: "object",
-                        properties: {
-                            label: { type: "string" },
-                            href: { type: "string" },
-                        },
-                    },
-                },
-            },
-            defaultProps: {
-                logoUrl: null,
-                links: [
-                    { label: "Home", href: "#" },
-                    { label: "About", href: "#about" },
-                    { label: "Contact", href: "#contact" },
-                ],
-            },
-        },
-        {
-            id: "hero_with_cta",
-            name: "Hero with CTA",
-            category: "hero",
-            thumbnailUrl: "https://f005.backblazeb2.com/file/sitepilot-assets/placeholders/hero-thumb.png",
-            requiredPlan: "starter",
-            propsSchema: {
-                heading: { type: "string", label: "Heading" },
-                subheading: { type: "string", label: "Subheading" },
-                buttonLabel: { type: "string", label: "Button Label" },
-                buttonLink: { type: "string", label: "Button Link" },
-                backgroundImage: { type: "image", label: "Background Image" },
-            },
-            defaultProps: {
-                heading: "Welcome to our platform",
-                subheading: "The best way to build your website",
-                buttonLabel: "Get Started",
-                buttonLink: "#",
-                backgroundImage: null,
-            },
-        },
-        {
-            id: "footer",
-            name: "Standard Footer",
-            category: "layout",
-            thumbnailUrl: "https://f005.backblazeb2.com/file/sitepilot-assets/placeholders/footer-thumb.png",
-            requiredPlan: "starter",
-            propsSchema: {
-                companyName: { type: "string", label: "Company Name" },
-                tagline: { type: "string", label: "Tagline" },
-                copyrightYear: { type: "number", label: "Copyright Year" },
-            },
-            defaultProps: {
-                companyName: "Acme Corp",
-                tagline: "Building the future together",
-                copyrightYear: 2025,
-            },
-        },
-    ];
-
-    for (const comp of components) {
-        await prisma.component.upsert({
-            where: { id: comp.id },
-            update: comp,
-            create: comp,
-        });
-    }
-    console.log("Components seeded.");
-
-    // 2. Templates
+    // Templates — now prompt-based, no TemplateComponent rows needed.
     const templates = [
         {
-            id: "tmpl_business",
-            name: "Modern Business",
-            category: "business",
-            thumbnailUrl: "https://f005.backblazeb2.com/file/sitepilot-assets/placeholders/tmpl-business-thumb.png",
-            previewUrl: "https://f005.backblazeb2.com/file/sitepilot-assets/placeholders/demo-business/index.html",
+            id: "tmpl-modern-restaurant",
+            name: "Modern Restaurant",
+            category: "local",
+            thumbnailUrl: "",
+            previewUrl: "",
             requiredPlan: "starter",
             isActive: true,
             sortOrder: 1,
+            systemPrompt: "Luxury restaurant website with dark hero, warm gold accents, gallery section, menu highlights and booking CTA",
+            suggestedComponents: ["navbar", "hero", "gallery", "testimonials", "contact", "footer"],
         },
         {
-            id: "tmpl_restaurant",
-            name: "Classic Restaurant",
-            category: "restaurant",
-            thumbnailUrl: "https://f005.backblazeb2.com/file/sitepilot-assets/placeholders/tmpl-restaurant-thumb.png",
-            previewUrl: "https://f005.backblazeb2.com/file/sitepilot-assets/placeholders/demo-restaurant/index.html",
+            id: "tmpl-business",
+            name: "Modern Business",
+            category: "business",
+            thumbnailUrl: "",
+            previewUrl: "",
             requiredPlan: "starter",
             isActive: true,
             sortOrder: 2,
+            systemPrompt: "Clean professional business website, feature grid, testimonials, contact form",
+            suggestedComponents: ["navbar", "hero", "feature_grid", "testimonials", "contact", "footer"],
+        },
+        {
+            id: "tmpl-portfolio",
+            name: "Creative Portfolio",
+            category: "creative",
+            thumbnailUrl: "",
+            previewUrl: "",
+            requiredPlan: "starter",
+            isActive: true,
+            sortOrder: 3,
+            systemPrompt: "Minimal, bold creative portfolio with large imagery, project showcase grid, about section and contact",
+            suggestedComponents: ["navbar", "hero", "gallery", "text_block", "contact", "footer"],
+        },
+        {
+            id: "tmpl-saas-landing",
+            name: "SaaS Landing Page",
+            category: "business",
+            thumbnailUrl: "",
+            previewUrl: "",
+            requiredPlan: "starter",
+            isActive: true,
+            sortOrder: 4,
+            systemPrompt: "Modern SaaS product landing page with gradient hero, feature grid with icons, pricing section, testimonials and CTA",
+            suggestedComponents: ["navbar", "hero", "feature_grid", "testimonials", "contact", "footer"],
+        },
+        {
+            id: "tmpl-blog",
+            name: "Blog Platform",
+            category: "content",
+            thumbnailUrl: "",
+            previewUrl: "",
+            requiredPlan: "starter",
+            isActive: true,
+            sortOrder: 5,
+            systemPrompt: "Clean, readable blog layout with featured post hero, article grid, sidebar categories and newsletter signup",
+            suggestedComponents: ["navbar", "hero", "text_block", "gallery", "contact", "footer"],
+        },
+        {
+            id: "tmpl-blank",
+            name: "Blank Canvas",
+            category: "blank",
+            thumbnailUrl: "",
+            previewUrl: "",
+            requiredPlan: "starter",
+            isActive: true,
+            sortOrder: 99,
+            systemPrompt: "",
+            suggestedComponents: [],
         },
     ];
 
@@ -116,54 +88,8 @@ async function main() {
             create: tmpl,
         });
     }
-    console.log("Templates seeded.");
 
-    // 3. Template Components (The structure of tmpl_business)
-    const tmplBusinessComps = [
-        {
-            templateId: "tmpl_business",
-            componentId: "navbar",
-            pageSlug: "home",
-            pageTitle: "Home",
-            pageNavOrder: 1,
-            orderIndex: 1,
-            defaultProps: {},
-        },
-        {
-            templateId: "tmpl_business",
-            componentId: "hero_with_cta",
-            pageSlug: "home",
-            pageTitle: "Home",
-            pageNavOrder: 1,
-            orderIndex: 2,
-            defaultProps: {
-                heading: "Professional Business Solutions",
-                subheading: "Growing your enterprise with modern tech.",
-            },
-        },
-        {
-            templateId: "tmpl_business",
-            componentId: "footer",
-            pageSlug: "home",
-            pageTitle: "Home",
-            pageNavOrder: 1,
-            orderIndex: 3,
-            defaultProps: {},
-        },
-    ];
-
-    // Clean up existing template components to avoid duplicates during dev seeding
-    await prisma.templateComponent.deleteMany({
-        where: { templateId: { in: ["tmpl_business", "tmpl_restaurant"] } },
-    });
-
-    for (const tc of tmplBusinessComps) {
-        await prisma.templateComponent.create({
-            data: tc,
-        });
-    }
-
-    console.log("Template Components seeded.");
+    console.log(`Templates seeded: ${templates.length} templates`);
     console.log("Seeding finished.");
 }
 
