@@ -8,7 +8,6 @@ import authRouter from "./routes/auth.routes.js"
 import dashboardRouter from "./routes/dashboard.routes.js"
 import projectsRouter from "./routes/projects.routes.js"
 import templatesRouter from "./routes/templates.routes.js"
-import aiRouter from "./routes/ai.routes.js"
 import assetsRouter from "./routes/assets.routes.js"
 import builderRouter from "./routes/builder.routes.js"
 
@@ -28,7 +27,6 @@ app.use("/api/auth", authRouter)
 app.use("/api/dashboard", dashboardRouter)
 app.use("/api/projects", projectsRouter)
 app.use("/api/templates", templatesRouter)
-app.use("/api/ai", aiRouter)
 app.use("/api/assets", assetsRouter)
 app.use("/api/builder", builderRouter)
 
