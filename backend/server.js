@@ -10,6 +10,7 @@ import projectsRouter from "./routes/projects.routes.js"
 import templatesRouter from "./routes/templates.routes.js"
 import assetsRouter from "./routes/assets.routes.js"
 import builderRouter from "./routes/builder.routes.js"
+import aiRouter from "./routes/ai.routes.js"
 
 // Middleware imports
 import responseFormatter from "./middlewares/response.js"
@@ -29,6 +30,7 @@ app.use("/api/projects", projectsRouter)
 app.use("/api/templates", templatesRouter)
 app.use("/api/assets", assetsRouter)
 app.use("/api/builder", builderRouter)
+app.use("/api/ai", aiRouter)
 
 // Health check
 app.get("/api/health", (req, res) => {
