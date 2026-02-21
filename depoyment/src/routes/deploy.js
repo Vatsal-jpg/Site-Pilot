@@ -41,7 +41,7 @@ router.post("/", (req, res, next) => {
         slug,
         repo: normalizedRepo,
         status: "queued",
-        url: `http://${slug}.localhost`,
+        url: `http://${slug}.siteportal.web`,
         statusUrl: `/deploy/${slug}`,
         queuedAt: new Date().toISOString(),
       },

@@ -21,6 +21,7 @@ MINIKUBE_CPUS=${MINIKUBE_CPUS:-4}
 MINIKUBE_MEMORY=${MINIKUBE_MEMORY:-4096}
 MINIKUBE_DRIVER=${MINIKUBE_DRIVER:-docker}
 REGISTRY_PORT=${REGISTRY_PORT:-5000}
+BASE_DOMAIN=${BASE_DOMAIN:-siteportal.web}
 LOG_FILE="/var/log/server-setup.log"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -59,7 +60,13 @@ preflight() {
     warn "Free disk space is ${FREE_DISK_GB}GB. Recommended is 20GB+."
   fi
 
-  log "Preflight checks passed (user: $USER, RAM: ${TOTAL_MEM_MB}MB, Disk free: ${FREE_DISK_GB}GB)"
+  # Detect LAN IP from default route early — used by later stages
+  LAN_IP=$(ip route | grep default | grep -oP 'src \K[^ ]+' | head -1)
+  if [ -z "$LAN_IP" ]; then
+    error "Could not detect LAN IP from default route."
+  fi
+
+  log "Preflight checks passed (user: $USER, RAM: ${TOTAL_MEM_MB}MB, Disk: ${FREE_DISK_GB}GB, LAN IP: $LAN_IP)"
 }
 
 # ── Stage 1: System packages ──────────────────────────────────────────────────
@@ -79,9 +86,11 @@ install_system_deps() {
     git \
     jq \
     socat \
-    conntrack
+    conntrack \
+    dnsmasq \
+    nginx
 
-  log "System packages installed"
+  log "System packages installed (includes dnsmasq + nginx)"
 }
 
 # ── Stage 2: Docker ───────────────────────────────────────────────────────────
@@ -115,7 +124,7 @@ install_docker() {
   sudo systemctl start docker
 
   log "Docker installed ($(docker --version))"
-  warn "You may need to log out and back in (or run 'newgrp docker') for group changes to take effect."
+  warn "You may need to log out and back in (or run 'newgrp docker') for group changes."
 }
 
 # ── Stage 3: kubectl ──────────────────────────────────────────────────────────
@@ -188,16 +197,9 @@ start_minikube() {
 enable_addons() {
   section "Stage 6 — Enabling Minikube Addons"
 
-  info "Enabling registry addon..."
   minikube addons enable registry
-
-  info "Enabling ingress addon (Nginx)..."
   minikube addons enable ingress
-
-  info "Enabling ingress-dns addon..."
   minikube addons enable ingress-dns
-
-  info "Enabling metrics-server..."
   minikube addons enable metrics-server
 
   log "Addons enabled"
@@ -233,7 +235,8 @@ configure_registry() {
         "$DAEMON_JSON" | sudo tee "$DAEMON_JSON.tmp" > /dev/null
       sudo mv "$DAEMON_JSON.tmp" "$DAEMON_JSON"
     else
-      echo "{\"insecure-registries\": [\"$MINIKUBE_IP:5000\", \"localhost:5000\"]}" | sudo tee "$DAEMON_JSON" > /dev/null
+      echo "{\"insecure-registries\": [\"$MINIKUBE_IP:5000\", \"localhost:5000\"]}" \
+        | sudo tee "$DAEMON_JSON" > /dev/null
     fi
     sudo systemctl restart docker
     log "Docker daemon configured for local registry"
@@ -242,7 +245,7 @@ configure_registry() {
     sg docker -c "minikube start"
   fi
 
-  log "Registry accessible at: localhost:$REGISTRY_PORT (via kubectl port-forward)"
+  log "Registry accessible at: localhost:$REGISTRY_PORT"
 }
 
 # ── Stage 8: Registry port-forward as a systemd service ──────────────────────
@@ -255,8 +258,6 @@ setup_registry_portforward_service() {
     log "Registry port-forward service already exists. Skipping."
     return
   fi
-
-  info "Creating systemd service for registry port-forward..."
 
   sudo tee "$SERVICE_FILE" > /dev/null <<EOF
 [Unit]
@@ -291,71 +292,133 @@ setup_directories() {
   log "Build directories created at /opt/deploy-platform"
 }
 
-# ── Stage 10: Install host nginx (LAN reverse proxy) ─────────────────────────
+# ── Stage 10: Host nginx (LAN reverse proxy) ──────────────────────────────────
 install_host_nginx() {
   section "Stage 10 — Host Nginx (LAN Reverse Proxy)"
-
-  if command -v nginx &>/dev/null; then
-    log "Nginx already installed. Skipping install."
-  else
-    info "Installing nginx..."
-    sudo apt-get install -y -qq nginx
-    log "Nginx installed"
-  fi
 
   MINIKUBE_IP=$(minikube ip)
   LAN_IP=$(ip route | grep default | grep -oP 'src \K[^ ]+' | head -1)
 
   # Per-site configs directory — owned by current user so API server
-  # can write new site configs without needing sudo at deploy time
+  # can write new site configs at deploy time without sudo
   sudo mkdir -p /etc/nginx/deploy-platform
   sudo chown -R "$USER":"$USER" /etc/nginx/deploy-platform
 
-  # Main include file loaded by nginx — pulls in all per-site configs
+  # Main include file — nginx loads this which pulls in all per-site configs
   INCLUDE_CONF="/etc/nginx/conf.d/deploy-platform.conf"
   if [ ! -f "$INCLUDE_CONF" ]; then
     sudo tee "$INCLUDE_CONF" > /dev/null <<'EOF'
 # Auto-managed by deploy-platform — do not edit manually
 include /etc/nginx/deploy-platform/*.conf;
 EOF
-    log "Created nginx include config at $INCLUDE_CONF"
+    log "Created nginx include config"
   else
     log "Nginx include config already exists. Skipping."
   fi
 
-  # Default catch-all shown when no slug matches the Host header
+  # Default catch-all block
   DEFAULT_CONF="/etc/nginx/deploy-platform/000-default.conf"
   if [ ! -f "$DEFAULT_CONF" ]; then
     cat > "$DEFAULT_CONF" <<'EOF'
 server {
-    listen 80 default_server;
+    listen 0.0.0.0:80 default_server;  # Listen on all interfaces on port 80
     server_name _;
-    return 200 'deploy-platform: no site found for this host\n';
-    add_header Content-Type text/plain;
+
+    location / {
+        return 200 'deploy-platform: no site found for this host\n';
+        add_header Content-Type text/plain;
+    }
 }
 EOF
     log "Created default catch-all nginx config"
   fi
 
-  # Remove stock nginx default site to avoid port 80 conflicts
+  # Remove stock nginx default site to avoid port 80 conflict
   if [ -f "/etc/nginx/sites-enabled/default" ]; then
     sudo rm /etc/nginx/sites-enabled/default
     log "Removed nginx default site"
   fi
 
-  # Validate and reload nginx
   sudo nginx -t && sudo systemctl reload nginx
   sudo systemctl enable nginx
 
-  log "Host nginx is running on port 80"
+  log "Host nginx running on port 80"
   info "LAN IP      : $LAN_IP"
   info "Minikube IP : $MINIKUBE_IP"
   info "Sites dir   : /etc/nginx/deploy-platform/"
 }
 
-# ── Stage 11: Verify everything ───────────────────────────────────────────────
+# ── Stage 11: dnsmasq (LAN DNS for *.siteportal.web) ─────────────────────────
+setup_dnsmasq() {
+  section "Stage 11 — dnsmasq (LAN DNS)"
+
+  LAN_IP=$(ip route | grep default | grep -oP 'src \K[^ ]+' | head -1)
+  LAN_IFACE=$(ip route | grep default | awk '{print $5}' | head -1)
+
+  info "Base domain : $BASE_DOMAIN"
+  info "LAN IP      : $LAN_IP"
+  info "Interface   : $LAN_IFACE"
+
+  # Back up existing dnsmasq config if present
+  if [ -f "/etc/dnsmasq.conf" ]; then
+    sudo cp /etc/dnsmasq.conf /etc/dnsmasq.conf.bak
+    log "Backed up existing dnsmasq.conf to dnsmasq.conf.bak"
+  fi
+
+  # Write dnsmasq config
+  sudo tee /etc/dnsmasq.conf > /dev/null <<EOF
+# deploy-platform dnsmasq config
+# Resolves *.${BASE_DOMAIN} → ${LAN_IP} for all LAN clients
+
+# Listen only on the LAN interface (not loopback)
+interface=${LAN_IFACE}
+
+# Wildcard DNS: any subdomain of ${BASE_DOMAIN} resolves to this server
+address=/.${BASE_DOMAIN}/${LAN_IP}
+
+# Don't forward .${BASE_DOMAIN} queries upstream — handle locally
+local=/.${BASE_DOMAIN}/
+
+# Don't read /etc/hosts for these queries
+no-hosts
+
+# Use upstream DNS for everything else (Google + Cloudflare)
+server=8.8.8.8
+server=1.1.1.1
+
+# Cache DNS queries
+cache-size=1000
+EOF
+
+  # systemd-resolved may be holding port 53 — disable its stub listener
+  if systemctl is-active systemd-resolved &>/dev/null; then
+    info "Disabling systemd-resolved stub listener to free port 53..."
+    sudo mkdir -p /etc/systemd/resolved.conf.d
+    sudo tee /etc/systemd/resolved.conf.d/no-stub.conf > /dev/null <<'EOF'
+[Resolve]
+DNSStubListener=no
+EOF
+    sudo systemctl restart systemd-resolved
+    log "systemd-resolved stub listener disabled"
+  fi
+
+  sudo systemctl enable dnsmasq
+  sudo systemctl restart dnsmasq
+
+  # Quick self-test
+  sleep 1
+  if dig +short testing.${BASE_DOMAIN} @${LAN_IP} 2>/dev/null | grep -q "$LAN_IP"; then
+    log "dnsmasq is resolving *.${BASE_DOMAIN} → ${LAN_IP} correctly"
+  else
+    warn "dnsmasq self-test failed — check: sudo systemctl status dnsmasq"
+  fi
+
+  log "dnsmasq configured. LAN clients should set DNS to: $LAN_IP"
+}
+
+# ── Stage 12: Verify everything ───────────────────────────────────────────────
 verify() {
-  section "Stage 11 — Verification"
+  section "Stage 12 — Verification"
 
   local all_good=true
 
@@ -370,14 +433,14 @@ verify() {
     fi
   }
 
-  check "Docker is running"          "docker info"
-  check "kubectl can reach cluster"  "kubectl cluster-info"
-  check "Minikube is running"        "minikube status | grep -q Running"
-  check "Ingress addon enabled"      "minikube addons list | grep ingress | grep -q enabled"
-  check "Registry addon enabled"     "minikube addons list | grep registry | grep -qw enabled"
-  check "Build directories exist"    "test -d /opt/deploy-platform/builds"
-  check "Host nginx is running"      "systemctl is-active nginx"
-  check "Nginx sites dir exists"     "test -d /etc/nginx/deploy-platform"
+  check "Docker is running"           "docker info"
+  check "kubectl can reach cluster"   "kubectl cluster-info"
+  check "Minikube is running"         "minikube status | grep -q Running"
+  check "Ingress addon enabled"       "minikube addons list | grep ingress | grep -q enabled"
+  check "Build directories exist"     "test -d /opt/deploy-platform/builds"
+  check "Host nginx is running"       "systemctl is-active nginx"
+  check "Nginx sites dir exists"      "test -d /etc/nginx/deploy-platform"
+  check "dnsmasq is running"          "systemctl is-active dnsmasq"
 
   echo ""
   if $all_good; then
@@ -397,24 +460,29 @@ print_summary() {
   echo -e "${GREEN}  Setup Complete — Deployment Platform Summary${NC}"
   echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
   echo ""
-  echo -e "  LAN IP (access from network) : ${BLUE}$LAN_IP${NC}"
-  echo -e "  Minikube IP (internal)        : ${BLUE}$MINIKUBE_IP${NC}"
+  echo -e "  LAN IP (server)              : ${BLUE}$LAN_IP${NC}"
+  echo -e "  Minikube IP (internal)       : ${BLUE}$MINIKUBE_IP${NC}"
+  echo -e "  Base domain                  : ${BLUE}$BASE_DOMAIN${NC}"
   echo -e "  Local Registry               : ${BLUE}localhost:$REGISTRY_PORT${NC}"
   echo -e "  Build directory              : ${BLUE}/opt/deploy-platform/builds${NC}"
   echo -e "  Logs directory               : ${BLUE}/opt/deploy-platform/logs${NC}"
   echo -e "  Nginx sites directory        : ${BLUE}/etc/nginx/deploy-platform/${NC}"
   echo -e "  Setup log                    : ${BLUE}$LOG_FILE${NC}"
   echo ""
-  echo -e "  After deploying a site with slug 'mysite':"
-  echo -e "  → On any LAN machine, add to /etc/hosts:"
-  echo -e "    ${YELLOW}$LAN_IP  mysite.localhost${NC}"
-  echo -e "  → Then open: ${BLUE}http://mysite.localhost${NC}"
+  echo -e "  ${YELLOW}For LAN access from other machines:${NC}"
+  echo -e "  Set DNS server to ${BLUE}$LAN_IP${NC} on the client machine."
+  echo -e "  Then any deployed site is instantly available at:"
+  echo -e "  ${BLUE}http://<slug>.${BASE_DOMAIN}${NC}"
+  echo ""
+  echo -e "  Example after deploying slug 'mysite':"
+  echo -e "  ${BLUE}http://mysite.${BASE_DOMAIN}${NC}"
   echo ""
   echo -e "  Useful commands:"
-  echo -e "    ${YELLOW}minikube status${NC}           — cluster status"
-  echo -e "    ${YELLOW}kubectl get pods -A${NC}       — all running pods"
-  echo -e "    ${YELLOW}kubectl get ingress${NC}       — all ingress routes"
-  echo -e "    ${YELLOW}ls /etc/nginx/deploy-platform/${NC} — all deployed site configs"
+  echo -e "    ${YELLOW}minikube status${NC}                   — cluster status"
+  echo -e "    ${YELLOW}kubectl get pods -A${NC}               — all running pods"
+  echo -e "    ${YELLOW}kubectl get ingress${NC}               — all ingress routes"
+  echo -e "    ${YELLOW}sudo systemctl status dnsmasq${NC}     — DNS server status"
+  echo -e "    ${YELLOW}ls /etc/nginx/deploy-platform/${NC}    — deployed site configs"
   echo ""
   echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 }
@@ -438,6 +506,7 @@ main() {
   setup_registry_portforward_service
   setup_directories
   install_host_nginx
+  setup_dnsmasq
   verify
   print_summary
 }
