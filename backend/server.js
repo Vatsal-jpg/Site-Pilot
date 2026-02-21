@@ -1,21 +1,49 @@
+import "dotenv/config"
 import cookieParser from "cookie-parser"
 import express from "express"
-import dotenv from "dotenv"
-import userRouter from "./routes/user.routes.js"
-import responseFormatter from "./middlewares/response.js"
 import cors from "cors"
 
-dotenv.config()
+// Route imports
+import authRouter from "./routes/auth.routes.js"
+import dashboardRouter from "./routes/dashboard.routes.js"
+import projectsRouter from "./routes/projects.routes.js"
+import templatesRouter from "./routes/templates.routes.js"
+import aiRouter from "./routes/ai.routes.js"
+import assetsRouter from "./routes/assets.routes.js"
+import builderRouter from "./routes/builder.routes.js"
+
+// Middleware imports
+import responseFormatter from "./middlewares/response.js"
 const app = express()
 
+// Global middleware
 app.use(cors())
 app.use(cookieParser())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+app.use(responseFormatter) // must be BEFORE routes so res.sendResponse is available
 
-app.use("/user", userRouter);
-app.use(responseFormatter)
+// Routes
+app.use("/api/auth", authRouter)
+app.use("/api/dashboard", dashboardRouter)
+app.use("/api/projects", projectsRouter)
+app.use("/api/templates", templatesRouter)
+app.use("/api/ai", aiRouter)
+app.use("/api/assets", assetsRouter)
+app.use("/api/builder", builderRouter)
 
-app.listen(4000, () => {
-    console.log("Server is running on port 4000")
+// Health check
+app.get("/api/health", (req, res) => {
+    res.json({ success: true, message: "Server is running", timestamp: new Date().toISOString() })
+})
+
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error("Unhandled error:", err)
+    res.status(500).json({ success: false, message: "Internal server error" })
+})
+
+const PORT = process.env.PORT || 4000
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`)
 })

@@ -1,29 +1,31 @@
 import jwt from "jsonwebtoken";
 
-const generateAccessToken = (role, email) => {
+/**
+ * Sign a JWT with the standard SitePilot payload shape.
+ * @param {{ id: string, tenantId: string, role: string, plan: string }} payload
+ * @returns {string} signed JWT
+ */
+const generateToken = (payload) => {
     return jwt.sign(
-        { role, email },
+        {
+            id: payload.id,
+            tenantId: payload.tenantId,
+            role: payload.role,
+            plan: payload.plan,
+        },
         process.env.JWT_SECRET,
-        { expiresIn: "15m" }
+        { expiresIn: "7d" }
     );
 };
 
-const verifyToken = (role, token) => {
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-        if (decoded.role !== role) {
-            return { valid: false, reason: "Unauthorized role" };
-        }
-
-        return { valid: true, data: decoded };
-    } catch (error) {
-        if (error.name === "TokenExpiredError") {
-            return { valid: false, reason: "Token expired" };
-        }
-
-        return { valid: false, reason: "Invalid token" };
-    }
+/**
+ * Verify & decode a JWT.
+ * @param {string} token
+ * @returns {{ id: string, tenantId: string, role: string, plan: string }}
+ * @throws if invalid or expired
+ */
+const verifyToken = (token) => {
+    return jwt.verify(token, process.env.JWT_SECRET);
 };
 
-export { generateAccessToken, verifyToken };
+export { generateToken, verifyToken };
