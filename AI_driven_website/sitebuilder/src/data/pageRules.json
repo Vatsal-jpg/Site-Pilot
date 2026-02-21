@@ -1,0 +1,186 @@
+{
+    "rules": {
+        "always": {
+            "first": [
+                "NavBar",
+                "NavBarCentered"
+            ],
+            "last": [
+                "FooterFull",
+                "FooterMinimal",
+                "FooterWithNewsletter"
+            ],
+            "maxSectionsPerPage": 8,
+            "minSectionsPerPage": 3
+        },
+        "once": [
+            "HeroSplit",
+            "HeroCentered",
+            "HeroFullBleed",
+            "HeroMinimal",
+            "HeroWithVideo",
+            "HeroWithForm",
+            "PricingTable"
+        ],
+        "heroMustBeSecond": true,
+        "pageTypeDefaults": {
+            "home": [
+                "NavBar",
+                "HeroSplit",
+                "LogoBar",
+                "FeatureGrid",
+                "Metrics",
+                "TestimonialGrid",
+                "CTABanner",
+                "FooterFull"
+            ],
+            "about": [
+                "NavBar",
+                "HeroMinimal",
+                "AboutSplit",
+                "Values",
+                "Metrics",
+                "TeamGrid",
+                "CTABanner",
+                "FooterFull"
+            ],
+            "services": [
+                "NavBar",
+                "HeroSplit",
+                "FeatureList",
+                "FeatureGrid",
+                "TestimonialGrid",
+                "FAQ",
+                "CTABanner",
+                "FooterFull"
+            ],
+            "portfolio": [
+                "NavBar",
+                "HeroMinimal",
+                "Gallery",
+                "ContentBlock",
+                "TestimonialGrid",
+                "CTABanner",
+                "FooterFull"
+            ],
+            "pricing": [
+                "NavBar",
+                "HeroMinimal",
+                "PricingTable",
+                "Metrics",
+                "FAQ",
+                "TestimonialGrid",
+                "CTABanner",
+                "FooterFull"
+            ],
+            "contact": [
+                "NavBar",
+                "HeroMinimal",
+                "ContactForm",
+                "Metrics",
+                "LogoBar",
+                "FooterFull"
+            ],
+            "blog": [
+                "NavBar",
+                "HeroMinimal",
+                "BlogFeed",
+                "NewsletterSignup",
+                "FooterFull"
+            ],
+            "team": [
+                "NavBar",
+                "HeroMinimal",
+                "TeamGrid",
+                "Values",
+                "CTABanner",
+                "FooterFull"
+            ],
+            "casestudies": [
+                "NavBar",
+                "HeroMinimal",
+                "ContentBlock",
+                "Gallery",
+                "Metrics",
+                "TestimonialCarousel",
+                "CTABanner",
+                "FooterFull"
+            ],
+            "landing": [
+                "NavBar",
+                "HeroCentered",
+                "LogoBar",
+                "FeatureGrid",
+                "Metrics",
+                "PricingTable",
+                "FAQ",
+                "FooterMinimal"
+            ]
+        }
+    },
+    "businessTypeToPages": {
+        "saas": [
+            "home",
+            "pricing",
+            "about",
+            "blog"
+        ],
+        "agency": [
+            "home",
+            "services",
+            "portfolio",
+            "team",
+            "casestudies",
+            "contact"
+        ],
+        "portfolio": [
+            "home",
+            "portfolio",
+            "about",
+            "contact"
+        ],
+        "ecommerce": [
+            "home",
+            "services",
+            "about",
+            "contact"
+        ],
+        "restaurant": [
+            "home",
+            "about",
+            "contact"
+        ],
+        "professional": [
+            "home",
+            "services",
+            "about",
+            "team",
+            "contact"
+        ],
+        "startup": [
+            "home",
+            "about",
+            "pricing",
+            "contact"
+        ],
+        "blog": [
+            "home",
+            "blog",
+            "about",
+            "contact"
+        ],
+        "nonprofit": [
+            "home",
+            "about",
+            "team",
+            "contact"
+        ],
+        "education": [
+            "home",
+            "services",
+            "team",
+            "about",
+            "contact"
+        ]
+    }
+}
