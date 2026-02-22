@@ -6,11 +6,10 @@ import slugify from "../utils/slugify.js";
 // ─────────────────────────────────────────
 // POST /api/auth/signup
 // ─────────────────────────────────────────
-const signup = async (req, res) => {
+export const signup = async (req, res) => {
     try {
         const { orgName, name, email, password, plan } = req.body;
 
-        // 1. Validate required fields
         if (!orgName || !name || !email || !password) {
             return res.status(400).json({
                 success: false,
@@ -18,7 +17,6 @@ const signup = async (req, res) => {
             });
         }
 
-        // Basic email format check
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             return res.status(400).json({
@@ -27,7 +25,6 @@ const signup = async (req, res) => {
             });
         }
 
-        // 2. Check email not already taken
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) {
             return res.status(409).json({
@@ -36,28 +33,24 @@ const signup = async (req, res) => {
             });
         }
 
-        // 3. Hash password
         const saltRounds = parseInt(process.env.SALT_ROUNDS) || 10;
         const passwordHash = await bcrypt.hash(password, saltRounds);
 
-        // 4. Slugify org name
         let slug = slugify(orgName);
 
-        // 5. Check slug uniqueness, append random suffix if taken
         const existingTenant = await prisma.tenant.findUnique({ where: { slug } });
         if (existingTenant) {
             const suffix = Math.random().toString(36).substring(2, 6);
             slug = `${slug}-${suffix}`;
         }
 
-        // 6. Validate plan
         const validPlans = ["starter", "pro", "enterprise"];
         const selectedPlan = validPlans.includes(plan) ? plan : "starter";
 
-        // 7. Prisma transaction — create Tenant + User
         const result = await prisma.$transaction(async (tx) => {
             const tenant = await tx.tenant.create({
                 data: {
+                    name: orgName,
                     orgName,
                     slug,
                     plan: selectedPlan,
@@ -71,7 +64,8 @@ const signup = async (req, res) => {
                     tenantId: tenant.id,
                     name,
                     email,
-                    passwordHash,
+                    password: passwordHash, // new schema maps it simply here
+                    passwordHash: passwordHash, // left here for legacy compatibility if needed
                     role: "owner",
                 },
             });
@@ -79,26 +73,27 @@ const signup = async (req, res) => {
             return { tenant, user };
         });
 
-        // 8. Sign JWT
         const token = generateToken({
             id: result.user.id,
+            userId: result.user.id,
             tenantId: result.tenant.id,
             role: "owner",
             plan: selectedPlan,
         });
 
-        // 9. Send response
         return res.status(201).json({
             success: true,
             token,
             user: {
                 id: result.user.id,
                 name: result.user.name,
+                email: result.user.email,
                 role: result.user.role,
             },
             tenant: {
                 id: result.tenant.id,
                 orgName: result.tenant.orgName,
+                name: result.tenant.name,
                 slug: result.tenant.slug,
                 plan: result.tenant.plan,
             },
@@ -112,7 +107,7 @@ const signup = async (req, res) => {
 // ─────────────────────────────────────────
 // POST /api/auth/login
 // ─────────────────────────────────────────
-const login = async (req, res) => {
+export const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -123,19 +118,17 @@ const login = async (req, res) => {
             });
         }
 
-        // 1. Find user
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
             return res.status(401).json({ success: false, message: "Invalid credentials" });
         }
 
-        // 2. Compare password
-        const isValid = await bcrypt.compare(password, user.passwordHash);
+        const actualHash = user.password || user.passwordHash;
+        const isValid = await bcrypt.compare(password, actualHash);
         if (!isValid) {
             return res.status(401).json({ success: false, message: "Invalid credentials" });
         }
 
-        // 3. Fetch tenant for plan info
         const tenant = await prisma.tenant.findUnique({
             where: { id: user.tenantId },
         });
@@ -144,26 +137,27 @@ const login = async (req, res) => {
             return res.status(500).json({ success: false, message: "Tenant not found" });
         }
 
-        // 4. Sign JWT
         const token = generateToken({
             id: user.id,
+            userId: user.id,
             tenantId: tenant.id,
             role: user.role,
             plan: tenant.plan,
         });
 
-        // 5. Send response
         return res.status(200).json({
             success: true,
             token,
             user: {
                 id: user.id,
                 name: user.name,
+                email: user.email,
                 role: user.role,
             },
             tenant: {
                 id: tenant.id,
                 orgName: tenant.orgName,
+                name: tenant.name,
                 slug: tenant.slug,
                 plan: tenant.plan,
             },
@@ -173,5 +167,3 @@ const login = async (req, res) => {
         return res.status(500).json({ success: false, message: "Internal server error" });
     }
 };
-
-export { signup, login };

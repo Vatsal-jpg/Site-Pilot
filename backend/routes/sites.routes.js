@@ -40,18 +40,32 @@ router.post("/:projectId/duplicate", authMiddleware, async (req, res) => {
     try {
         const { projectId } = req.params;
 
-        const source = await prisma.project.findFirst({
-            where: { id: projectId, tenantId: req.user.tenantId },
+        // Assert ownership using the new helper
+        const { assertTenantOwns } = await import("../middlewares/tenantScope.js");
+        await assertTenantOwns(prisma, 'project', projectId, req.user.tenantId);
+
+        // Check site limits before duplicating
+        const PLAN_LIMITS = (await import("../utils/planLimits.js")).default;
+        const planLimits = PLAN_LIMITS[req.user.plan] || PLAN_LIMITS.starter;
+        const siteCount = await prisma.project.count({ where: { tenantId: req.user.tenantId } });
+
+        if (siteCount >= planLimits.sites) {
+            return res.status(403).json({
+                success: false,
+                message: "Site limit reached",
+                upgradeRequired: true,
+                limit: planLimits.sites
+            });
+        }
+
+        const source = await prisma.project.findUnique({
+            where: { id: projectId },
             include: {
                 sitePages: {
                     include: { sections: { orderBy: { orderIndex: "asc" } } }
                 }
             }
         });
-
-        if (!source) {
-            return res.status(404).json({ success: false, message: "Project not found" });
-        }
 
         const slug = source.slug + "-copy-" + Date.now();
 
@@ -98,6 +112,7 @@ router.post("/:projectId/duplicate", authMiddleware, async (req, res) => {
 
         res.status(201).json({ success: true, site: newProject });
     } catch (error) {
+        if (error.status === 403 || error.status === 404) return res.status(error.status).json({ success: false, message: error.message });
         console.error("Duplicate site error:", error);
         res.status(500).json({ success: false, message: "Failed to duplicate site" });
     }

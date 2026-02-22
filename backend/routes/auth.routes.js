@@ -8,6 +8,8 @@ const router = Router();
 router.post("/signup", signup);
 router.post("/login", login);
 
+import PLAN_LIMITS from "../utils/planLimits.js";
+
 router.get("/me", authMiddleware, async (req, res) => {
     try {
         const user = await prisma.user.findUnique({
@@ -21,12 +23,16 @@ router.get("/me", authMiddleware, async (req, res) => {
 
         const tenant = await prisma.tenant.findUnique({
             where: { id: user.tenantId },
-            select: { id: true, orgName: true, slug: true, plan: true, aiCreditsUsed: true, storageUsedBytes: true }
+            select: { id: true, orgName: true, name: true, slug: true, plan: true, aiCreditsUsed: true, storageUsedBytes: true }
         });
 
         if (!tenant) {
             return res.status(404).json({ success: false, message: "Tenant not found" });
         }
+
+        const planLimits = PLAN_LIMITS[tenant.plan] || PLAN_LIMITS.starter;
+        const siteCount = await prisma.project.count({ where: { tenantId: user.tenantId } });
+        const memberCount = await prisma.user.count({ where: { tenantId: user.tenantId } });
 
         // BigInt cannot be serialized by JSON.stringify — convert to string
         res.json({
@@ -34,6 +40,16 @@ router.get("/me", authMiddleware, async (req, res) => {
             tenant: {
                 ...tenant,
                 storageUsedBytes: tenant.storageUsedBytes.toString(),
+            },
+            usage: {
+                aiCreditsUsed: tenant.aiCreditsUsed,
+                aiCreditsLimit: planLimits.aiCredits,
+                storageUsedBytes: tenant.storageUsedBytes.toString(),
+                storageLimitBytes: planLimits.storageMB * 1024 * 1024,
+                siteCount,
+                siteLimit: planLimits.sites,
+                memberCount,
+                memberLimit: planLimits.teamMembers,
             }
         });
     } catch (error) {

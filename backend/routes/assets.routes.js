@@ -2,6 +2,7 @@ import express from 'express';
 import prisma from '../utils/prisma.js';
 import authMiddleware from '../middlewares/auth.js';
 import multer from 'multer';
+import PLAN_LIMITS from '../utils/planLimits.js';
 
 const router = express.Router();
 
@@ -21,10 +22,12 @@ router.get('/', authMiddleware, async (req, res) => {
             orderBy: { createdAt: 'desc' }
         });
 
+        const planLimits = PLAN_LIMITS[tenant.plan] || PLAN_LIMITS.starter;
+
         res.json({
             assets,
             storageUsed: tenant.storageUsedBytes.toString(),
-            storageLimit: tenant.plan === 'starter' ? 500 * 1024 * 1024 : tenant.plan === 'pro' ? 5 * 1024 * 1024 * 1024 : 50 * 1024 * 1024 * 1024
+            storageLimit: planLimits.storageMB * 1024 * 1024
         });
     } catch (error) {
         console.error('Error fetching assets:', error);
@@ -45,10 +48,11 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
         const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
         const sizeBytes = file.size;
 
-        const storageLimit = tenant.plan === 'starter' ? 500 * 1024 * 1024 : tenant.plan === 'pro' ? 5 * 1024 * 1024 * 1024 : 50 * 1024 * 1024 * 1024;
+        const planLimits = PLAN_LIMITS[tenant.plan] || PLAN_LIMITS.starter;
+        const storageLimit = planLimits.storageMB * 1024 * 1024;
 
         if (BigInt(tenant.storageUsedBytes) + BigInt(sizeBytes) > BigInt(storageLimit)) {
-            return res.status(403).json({ error: 'Storage limit exceeded' });
+            return res.status(403).json({ error: 'Storage limit exceeded', upgradeRequired: true });
         }
 
         const base64Data = file.buffer.toString('base64');

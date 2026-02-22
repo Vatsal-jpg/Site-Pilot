@@ -1,28 +1,27 @@
-/**
- * Hardcoded plan limits — source of truth for gating features.
- * These are NOT stored in the DB; update here when pricing changes.
- */
 const PLAN_LIMITS = {
     starter: {
-        maxProjects: 2,
-        maxPages: 5,
-        storageLimitBytes: 524288000,       // 500 MB
-        aiCreditsMonthly: 50,
-        customDomain: false,
+        sites: 2,
+        pagesPerSite: 3,
+        aiCredits: 10,
+        storageMB: 100,
+        teamMembers: 1,
+        customDomains: false,
     },
     pro: {
-        maxProjects: 5,
-        maxPages: 999,
-        storageLimitBytes: 5368709120,      // 5 GB
-        aiCreditsMonthly: 500,
-        customDomain: true,
+        sites: 10,
+        pagesPerSite: 10,
+        aiCredits: 100,
+        storageMB: 2048,
+        teamMembers: 5,
+        customDomains: true,
     },
     enterprise: {
-        maxProjects: 50,
-        maxPages: 999,
-        storageLimitBytes: 53687091200,     // 50 GB
-        aiCreditsMonthly: 5000,
-        customDomain: true,
+        sites: 999999,
+        pagesPerSite: 999999,
+        aiCredits: 999999,
+        storageMB: 20480,
+        teamMembers: 999999,
+        customDomains: true,
     },
 };
 

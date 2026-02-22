@@ -16,7 +16,8 @@ async function checkCredits(tenantId) {
     });
     if (!tenant) throw new Error("Tenant not found");
 
-    const limit = PLAN_LIMITS[tenant.plan].aiCreditsMonthly;
+    const planLimits = PLAN_LIMITS[tenant.plan] || PLAN_LIMITS.starter;
+    const limit = planLimits.aiCredits;
     if (tenant.aiCreditsUsed >= limit) {
         const err = new Error("AI credit limit reached");
         err.status = 429;
@@ -29,15 +30,19 @@ async function checkCredits(tenantId) {
 // Record AI usage helper — fire-and-forget is fine, but we await for accuracy
 // ─────────────────────────────────────────────────────────────────────────────
 async function recordUsage(tenantId, userId, projectId, action, tokensUsed) {
-    await prisma.$transaction([
-        prisma.aIUsage.create({
-            data: { tenantId, userId, projectId: projectId || null, action, tokensUsed },
-        }),
-        prisma.tenant.update({
-            where: { id: tenantId },
-            data: { aiCreditsUsed: { increment: 1 } },
-        }),
-    ]);
+    try {
+        await prisma.$transaction([
+            prisma.aIUsage.create({
+                data: { tenantId, userId, projectId: projectId || null, action, tokensUsed, creditsUsed: 1 },
+            }),
+            prisma.tenant.update({
+                where: { id: tenantId },
+                data: { aiCreditsUsed: { increment: 1 } },
+            }),
+        ]);
+    } catch (e) {
+        console.error("Failed to record AI usage:", e);
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
