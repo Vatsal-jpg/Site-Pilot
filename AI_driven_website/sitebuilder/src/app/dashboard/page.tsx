@@ -73,9 +73,7 @@ export default function DashboardOverview() {
 
     const getGreeting = () => {
         const hour = new Date().getHours();
-        if (hour < 12) return 'Good morning';
-        if (hour < 18) return 'Good afternoon';
-        return 'Good evening';
+        return 'Hello ';
     };
 
     const createBlankSite = async () => {
@@ -92,11 +90,11 @@ export default function DashboardOverview() {
 
             {/* Header */}
             <div className="mb-8">
-                <h1 className="text-2xl font-bold text-white mb-2">
+                <h1 className="text-5xl font-extrabold tracking-tight text-white mb-2">
                     {getGreeting()}, {userName.split(' ')[0]}
                 </h1>
-                <p className="text-sm text-gray-500">
-                    Here's an overview of your workspace.
+                <p className="max-w-xl text-lg sm:text-xl text-gray-400 mt-5 leading-relaxed">
+                    Here's an overview of your workspace:
                 </p>
             </div>
 

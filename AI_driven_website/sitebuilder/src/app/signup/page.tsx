@@ -28,7 +28,7 @@ export default function SignupPage() {
                 // Also set a cookie for middleware
                 document.cookie = `auth_token=${res.token}; path=/; max-age=86400; SameSite=Lax`;
 
-                router.push("/onboarding");
+                router.push("/dashboard");
             } else {
                 setError(res.message || "Failed to create account");
             }
