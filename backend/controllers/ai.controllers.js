@@ -394,7 +394,10 @@ async function callGemini(systemPrompt, userMessage) {
         },
         systemInstruction: systemPrompt + JSON_SUFFIX,
     });
-    return cleanJSON(result.response.text());
+    return {
+        text: cleanJSON(result.response.text()),
+        tokensUsed: result.response.usageMetadata?.totalTokenCount ?? 500
+    };
 }
 
 // ─── New Site Builder AI Endpoints ───────────────────────────────────────────
@@ -441,7 +444,7 @@ Max pages: ${planPageLimit}
 
 Plan the best website structure for this business.`;
 
-        const text = await callGemini(systemPrompt, userMessage);
+        const { text, tokensUsed } = await callGemini(systemPrompt, userMessage);
         const parsed = JSON.parse(text);
 
         const NAV_NAMES = ['NavBar', 'NavBarCentered'];
@@ -480,11 +483,14 @@ Plan the best website structure for this business.`;
             return { name: page.name, slug: page.slug, sections };
         });
 
-        // Increment tenant usage
-        await prisma.tenant.update({
-            where: { id: req.user.tenantId },
-            data: { aiCreditsUsed: { increment: 1 } },
-        });
+        // Record AI usage properly with transaction
+        await recordUsage(
+            req.user.tenantId,
+            req.user.id,
+            req.body.projectId || null,
+            "generate_structure",
+            tokensUsed
+        );
 
         return res.status(200).json({ success: true, pages: fixedPages, summary: parsed.summary });
     } catch (error) {
@@ -555,12 +561,15 @@ Sections to fill: ${sections.join(', ')}
 
 Generate compelling content for all sections on this page.`;
 
-        const text = await callGemini(systemPrompt, userMessage);
+        const { text, tokensUsed } = await callGemini(systemPrompt, userMessage);
 
-        await prisma.tenant.update({
-            where: { id: req.user.tenantId },
-            data: { aiCreditsUsed: { increment: 1 } },
-        });
+        await recordUsage(
+            req.user.tenantId,
+            req.user.id,
+            req.body.projectId || null,
+            "generate_content",
+            tokensUsed
+        );
 
         return res.status(200).json(JSON.parse(text));
     } catch (error) {
@@ -605,13 +614,16 @@ Return format:
   "slots": { ...all slots filled }
 }`;
 
-        const text = await callGemini(systemPrompt, instruction);
+        const { text, tokensUsed } = await callGemini(systemPrompt, instruction);
 
-        // Costs less
-        await prisma.tenant.update({
-            where: { id: req.user.tenantId },
-            data: { aiCreditsUsed: { increment: 1 } }, // Using 1 for simplicity of integer type in Prisma schema
-        });
+        // Record usage properly with transaction
+        await recordUsage(
+            req.user.tenantId,
+            req.user.id,
+            req.body.projectId || null,
+            "edit_section",
+            tokensUsed
+        );
 
         return res.status(200).json(JSON.parse(text));
     } catch (error) {

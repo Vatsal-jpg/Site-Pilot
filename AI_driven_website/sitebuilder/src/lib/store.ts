@@ -1,118 +1,81 @@
 "use client";
 
-import { Site } from "./types";
+import { Site, Page, Section } from "./types";
 import { api } from "./api";
-
-const STORAGE_KEY = "sitebuilder_sites";
-
-// Cache helpers
-function getCache(): Site[] {
-    if (typeof window === "undefined") return [];
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        return raw ? JSON.parse(raw) : [];
-    } catch {
-        return [];
-    }
-}
-
-function saveCache(sites: Site[]): void {
-    if (typeof window !== "undefined") {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(sites));
-    }
-}
 
 // ─── API Methods ─────────────────────────────────────────────────────────────
 
 /**
- * Returns the cached sites immediately, then fetches from the API 
- * and updates the cache.
+ * Maps backend Project to frontend Site
  */
-export async function getAllSites(): Promise<Site[]> {
-    try {
-        const res = await api.get('/api/projects');
-
-        // Map backend Project -> frontend Site shape
-        const sites: Site[] = res.projects.map((p: any) => ({
+function convertProjectToSite(project: any): Site {
+    return {
+        id: project.id,
+        name: project.name,
+        prompt: project.userPrompt || '',
+        businessType: project.businessType || '',
+        brandColor: project.brandColor || '',
+        logoUrl: project.logoUrl || '',
+        status: project.status,
+        createdAt: project.createdAt,
+        palette: project.palette || null,
+        uploadedImages: project.uploadedImages || [],
+        pages: (project.pages || project.sitePages || []).map((p: any) => ({
             id: p.id,
             name: p.name,
-            prompt: p.userPrompt,
-            businessType: p.businessType,
-            brandColor: p.brandColor,
-            logoUrl: p.logoUrl,
-            status: p.status,
-            createdAt: p.createdAt,
-            palette: p.palette,
-            uploadedImages: p.uploadedImages,
-            // we skip pages here, or fetch them if backend returns them
-        }));
+            slug: p.slug,
+            sections: (p.sections || []).map((s: any) => ({
+                id: s.id,
+                componentType: s.componentType,
+                variant: s.variant,
+                slots: s.slots,
+            }))
+        }))
+    };
+}
 
-        saveCache(sites);
-        return sites;
+export async function getAllSites(): Promise<Site[]> {
+    try {
+        const res = await api.get('/api/sites');
+        if (!res.success && !res.sites) return [];
+        return res.sites.map(convertProjectToSite);
     } catch (e) {
-        console.warn("API fetch failed, returning cache", e);
-        return getCache();
+        console.error("API fetch failed for getAllSites", e);
+        return [];
     }
 }
 
 export async function getSite(id: string): Promise<Site | null> {
-    const cached = getCache().find((s) => s.id === id);
-
-    // Fire and forget background update or await it?
-    // We will await it for accuracy, but apps can show `cached` first if using SWR/React Query.
     try {
         const res = await api.get(`/api/sites/${id}`);
-        if (!res.success) return cached ?? null;
-
-        const p = res.project;
-        const site: Site = {
-            id: p.id,
-            name: p.name,
-            prompt: p.userPrompt || '',
-            businessType: p.businessType || '',
-            brandColor: p.brandColor || '',
-            logoUrl: p.logoUrl || '',
-            status: p.status,
-            createdAt: p.createdAt,
-            palette: p.palette || null,
-            uploadedImages: p.uploadedImages || [],
-            pages: p.sitePages?.map((page: any) => ({
-                id: page.id,
-                name: page.name,
-                slug: page.slug,
-                sections: page.sections.map((sec: any) => ({
-                    id: sec.id,
-                    componentType: sec.componentType,
-                    variant: sec.variant,
-                    slots: sec.slots
-                }))
-            })) || []
-        };
-
-        const sites = getCache();
-        const idx = sites.findIndex((s) => s.id === id);
-        if (idx >= 0) sites[idx] = site;
-        else sites.push(site);
-        saveCache(sites);
-
-        return site;
+        if (!res.success || !res.project) return null;
+        return convertProjectToSite(res.project);
     } catch (e) {
-        console.warn("API fetch failed, returning cache", e);
-        return cached ?? null;
+        console.error(`API fetch failed for getSite: ${id}`, e);
+        return null;
     }
 }
 
 export async function saveSite(site: Site): Promise<void> {
     try {
         // 1. Create project
-        const projRes = await api.post('/api/sites/create', { name: site.name });
+        const payload = {
+            name: site.name,
+            businessType: site.businessType,
+            brandColor: site.brandColor,
+            logoUrl: site.logoUrl,
+            palette: site.palette,
+            uploadedImages: site.uploadedImages,
+            prompt: site.prompt,
+        };
+        const projRes = await api.post('/api/sites/create', payload);
         const projectId = projRes.project.id;
         site.id = projectId; // update local ID to true DB ID
 
-        // 2. Create pages & sections
-        if (site.pages) {
-            for (const page of site.pages) {
-                await api.post(`/api/sites/${projectId}/pages`, {
+        // 2. Create pages & sections in bulk
+        if (site.pages && site.pages.length > 0) {
+            await api.post(`/api/sites/${projectId}/pages`, {
+                pages: site.pages.map(page => ({
                     name: page.name,
                     slug: page.slug,
                     sections: page.sections.map((s, idx) => ({
@@ -121,21 +84,12 @@ export async function saveSite(site: Site): Promise<void> {
                         slots: s.slots,
                         orderIndex: idx
                     }))
-                });
-            }
+                }))
+            });
         }
-
-        // Cache update
-        const sites = getCache();
-        sites.push(site);
-        saveCache(sites);
-
     } catch (e) {
         console.error("Failed to save site to API", e);
-        // Fallback to local cache only if API fails (optional depending on UX needs)
-        const sites = getCache();
-        sites.push(site);
-        saveCache(sites);
+        throw e;
     }
 }
 
@@ -144,33 +98,27 @@ export async function updateSite(id: string, updates: Partial<Site>): Promise<vo
         // If updating pages/sections, call replace endpoint per page
         if (updates.pages) {
             for (const page of updates.pages) {
+                // If it's just section updates, we use the put endpoint
+                // Assuming page already exists (if not, we'd need to handle creating individual pages here)
                 await api.put(`/api/sites/${id}/pages/${page.id}`, {
                     sections: page.sections.map((s, idx) => ({
                         componentType: s.componentType,
                         variant: s.variant,
                         slots: s.slots,
                         orderIndex: idx
-                    }))
+                    })),
+                    customHtml: (page as any).customHtml,
+                    customCss: (page as any).customCss,
                 });
             }
         }
 
-        // Update local cache
-        const sites = getCache();
-        const idx = sites.findIndex((s) => s.id === id);
-        if (idx >= 0) {
-            sites[idx] = { ...sites[idx], ...updates };
-            saveCache(sites);
-        }
+        // We can also have an endpoint for updating Project-level fields, but not in current routes.
+        // It wasn't explicitly asked for other than pages!
+
     } catch (e) {
         console.error("Failed to update site via API", e);
-        // Fallback cache update
-        const sites = getCache();
-        const idx = sites.findIndex((s) => s.id === id);
-        if (idx >= 0) {
-            sites[idx] = { ...sites[idx], ...updates };
-            saveCache(sites);
-        }
+        throw e;
     }
 }
 
@@ -179,8 +127,6 @@ export async function deleteSite(id: string): Promise<void> {
         await api.delete(`/api/sites/${id}`);
     } catch (e) {
         console.error("Failed to delete site via API", e);
-    } finally {
-        const sites = getCache().filter((s) => s.id !== id);
-        saveCache(sites);
+        throw e;
     }
 }

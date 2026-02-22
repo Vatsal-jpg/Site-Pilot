@@ -5,10 +5,8 @@ import PLAN_LIMITS from "../utils/planLimits.js";
 // POST /api/sites/create
 export const createSite = async (req, res) => {
     try {
-        const { name } = req.body;
-        if (!name) return res.status(400).json({ success: false, message: "Site name is required" });
+        const { name, businessType, brandColor, logoUrl, palette, uploadedImages, prompt } = req.body;
 
-        // Check site limits based on plan
         const planLimits = PLAN_LIMITS[req.user.plan] || PLAN_LIMITS.starter;
         const siteCount = await prisma.project.count({
             where: { tenantId: req.user.tenantId }
@@ -17,36 +15,35 @@ export const createSite = async (req, res) => {
         if (siteCount >= planLimits.sites) {
             return res.status(403).json({
                 success: false,
-                message: "Site limit reached",
+                error: `Site limit reached (${planLimits.sites} sites on ${req.user.plan} plan)`,
                 upgradeRequired: true,
                 limit: planLimits.sites
             });
         }
 
-        const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now();
-
         const project = await prisma.project.create({
             data: {
-                name,
-                slug,
                 tenantId: req.user.tenantId,
-                status: 'draft'
+                name: name || 'Untitled Site',
+                slug: (name || 'untitled').toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-') + '-' + Date.now(),
+                status: 'draft',
+                businessType,
+                brandColor,
+                logoUrl,
+                palette: palette || {},
+                uploadedImages: uploadedImages || [],
+                userPrompt: prompt,
             }
         });
 
-        // Add creator as owner
         await prisma.projectMember.create({
-            data: {
-                projectId: project.id,
-                userId: req.user.id,
-                role: 'owner'
-            }
+            data: { projectId: project.id, userId: req.user.id, role: 'owner' }
         });
 
         return res.status(201).json({ success: true, project });
     } catch (error) {
         console.error("Create site error:", error);
-        return res.status(500).json({ success: false, message: "Internal server error" });
+        return res.status(500).json({ success: false, error: "Internal server error" });
     }
 };
 
@@ -54,33 +51,61 @@ export const createSite = async (req, res) => {
 export const createPages = async (req, res) => {
     try {
         const { projectId } = req.params;
-        const { name, slug, sections } = req.body;
+        const { pages } = req.body;
 
-        // Verify project ownership using helper
         await assertTenantOwns(prisma, 'project', projectId, req.user.tenantId);
 
-        const page = await prisma.sitePage.create({
-            data: {
-                name,
-                slug,
-                projectId,
-                sections: {
-                    create: sections.map((s, idx) => ({
-                        componentType: s.componentType,
-                        variant: s.variant || "dark",
-                        slots: s.slots || {},
-                        orderIndex: s.orderIndex ?? idx
-                    }))
-                }
-            },
-            include: { sections: true }
+        if (!pages || !Array.isArray(pages)) {
+            return res.status(400).json({ success: false, error: 'pages array required' });
+        }
+
+        // Check page limit
+        const limits = PLAN_LIMITS[req.user.plan] || PLAN_LIMITS.starter;
+        if (pages.length > limits.pagesPerSite) {
+            return res.status(403).json({
+                success: false,
+                error: `Page limit is ${limits.pagesPerSite} on ${req.user.plan} plan`,
+                upgradeRequired: true
+            });
+        }
+
+        // Clean up existing page sections and pages
+        await prisma.siteSection.deleteMany({
+            where: { page: { projectId } }
+        });
+        await prisma.sitePage.deleteMany({
+            where: { projectId }
         });
 
-        return res.status(201).json({ success: true, page });
+        const createdPages = [];
+        for (let i = 0; i < pages.length; i++) {
+            const p = pages[i];
+            const page = await prisma.sitePage.create({
+                data: {
+                    projectId,
+                    name: p.name,
+                    slug: p.slug,
+                    navOrder: i,
+                    isHome: p.slug === '/' || p.slug === '',
+                    sections: {
+                        create: (p.sections || []).map((s, idx) => ({
+                            componentType: s.componentType,
+                            variant: s.variant || 'dark',
+                            slots: s.slots || {},
+                            orderIndex: idx
+                        }))
+                    }
+                },
+                include: { sections: true }
+            });
+            createdPages.push(page);
+        }
+
+        return res.status(201).json({ success: true, pages: createdPages });
     } catch (error) {
-        if (error.status === 403 || error.status === 404) return res.status(error.status).json({ success: false, message: error.message });
-        console.error("Create page error:", error);
-        return res.status(500).json({ success: false, message: "Internal server error" });
+        if (error.status === 403 || error.status === 404) return res.status(error.status).json({ success: false, error: error.message });
+        console.error("Create pages error:", error);
+        return res.status(500).json({ success: false, error: "Internal server error" });
     }
 };
 
@@ -88,13 +113,14 @@ export const createPages = async (req, res) => {
 export const getSiteByProjectId = async (req, res) => {
     try {
         const { projectId } = req.params;
-
         await assertTenantOwns(prisma, 'project', projectId, req.user.tenantId);
 
         const project = await prisma.project.findUnique({
             where: { id: projectId },
             include: {
+                branding: true,
                 sitePages: {
+                    orderBy: { navOrder: 'asc' },
                     include: {
                         sections: {
                             orderBy: { orderIndex: 'asc' }
@@ -104,11 +130,18 @@ export const getSiteByProjectId = async (req, res) => {
             }
         });
 
-        return res.status(200).json({ success: true, project });
+        // Map `sitePages` back to `pages` for frontend compatibility, as the DB model is SitePage, but frontend expects pages
+        const payload = {
+            ...project,
+            pages: project.sitePages
+        };
+        delete payload.sitePages;
+
+        return res.status(200).json({ success: true, project: payload });
     } catch (error) {
-        if (error.status === 403 || error.status === 404) return res.status(error.status).json({ success: false, message: error.message });
+        if (error.status === 403 || error.status === 404) return res.status(error.status).json({ success: false, error: error.message });
         console.error("Get site error:", error);
-        return res.status(500).json({ success: false, message: "Internal server error" });
+        return res.status(500).json({ success: false, error: "Internal server error" });
     }
 };
 
@@ -116,73 +149,68 @@ export const getSiteByProjectId = async (req, res) => {
 export const updatePageSections = async (req, res) => {
     try {
         const { projectId, pageId } = req.params;
-        const { sections } = req.body;
+        const { sections, customHtml, customCss } = req.body;
 
         await assertTenantOwns(prisma, 'project', projectId, req.user.tenantId);
 
-        // Update via transaction to replace all sections
-        const updatedPage = await prisma.$transaction(async (tx) => {
-            // Delete old
-            await tx.siteSection.deleteMany({
-                where: { pageId }
+        // Delete existing ones
+        await prisma.siteSection.deleteMany({
+            where: { pageId }
+        });
+
+        // Recreate them
+        if (sections && sections.length > 0) {
+            await prisma.siteSection.createMany({
+                data: sections.map((s, idx) => ({
+                    pageId,
+                    componentType: s.componentType || 'CustomBlock',
+                    variant: s.variant || 'dark',
+                    slots: s.slots || {},
+                    orderIndex: s.orderIndex ?? idx
+                }))
             });
+        }
 
-            // Create new
-            if (sections && sections.length > 0) {
-                await tx.siteSection.createMany({
-                    data: sections.map((s, idx) => ({
-                        pageId,
-                        componentType: s.componentType,
-                        variant: s.variant || "dark",
-                        slots: s.slots || {},
-                        orderIndex: s.orderIndex ?? idx
-                    }))
-                });
-            }
-
-            return tx.sitePage.findUnique({
+        // Store custom HTML/CSS if from GrapesJS edits
+        if (customHtml !== undefined || customCss !== undefined) {
+            await prisma.sitePage.update({
                 where: { id: pageId },
-                include: { sections: { orderBy: { orderIndex: 'asc' } } }
+                data: {
+                    customHtml: customHtml || null,
+                    customCss: customCss || null,
+                }
             });
+        }
+
+        // Auto-create version every 10 saves across the project
+        const saveCount = await prisma.siteSection.count({
+            where: { page: { projectId } }
+        });
+        if (saveCount > 0 && saveCount % 10 === 0) {
+            const fullProject = await prisma.project.findUnique({
+                where: { id: projectId },
+                include: { sitePages: { include: { sections: true } } }
+            });
+            await prisma.version.create({
+                data: {
+                    projectId,
+                    label: 'Auto-save',
+                    snapshot: fullProject,
+                    createdById: req.user.id
+                }
+            });
+        }
+
+        const updatedPage = await prisma.sitePage.findUnique({
+            where: { id: pageId },
+            include: { sections: { orderBy: { orderIndex: 'asc' } } }
         });
 
         return res.status(200).json({ success: true, page: updatedPage });
     } catch (error) {
-        if (error.status === 403 || error.status === 404) return res.status(error.status).json({ success: false, message: error.message });
+        if (error.status === 403 || error.status === 404) return res.status(error.status).json({ success: false, error: error.message });
         console.error("Update sections error:", error);
-        return res.status(500).json({ success: false, message: "Internal server error" });
-    }
-};
-
-// DELETE /api/sites/:projectId
-export const deleteSite = async (req, res) => {
-    try {
-        const { projectId } = req.params;
-
-        await assertTenantOwns(prisma, 'project', projectId, req.user.tenantId);
-
-        // Explicitly check role. Must be owner or admin.
-        const member = await prisma.projectMember.findFirst({
-            where: { projectId, userId: req.user.id, role: { in: ['owner', 'admin'] } }
-        });
-
-        // As a fallback, maybe the user is a tenant owner/admin making the request via global dashboard.
-        // We will allow if req.user.role is owner/admin OR they are a project member with owner/admin role.
-        if (!member && req.user.role !== 'owner' && req.user.role !== 'admin') {
-            return res.status(403).json({ success: false, message: "Forbidden - owner or admin role required to delete site." });
-        }
-
-        // Deletion cascade handles sections -> pages -> branding -> project usually, or we can manually do it if not set to cascade.
-        // Assume onDelete: Cascade is set on project relations.
-        await prisma.project.delete({
-            where: { id: projectId }
-        });
-
-        return res.status(200).json({ success: true, message: "Site deleted" });
-    } catch (error) {
-        if (error.status === 403 || error.status === 404) return res.status(error.status).json({ success: false, message: error.message });
-        console.error("Delete site error:", error);
-        return res.status(500).json({ success: false, message: "Internal server error" });
+        return res.status(500).json({ success: false, error: "Internal server error" });
     }
 };
 
@@ -190,38 +218,164 @@ export const deleteSite = async (req, res) => {
 export const publishSite = async (req, res) => {
     try {
         const { projectId } = req.params;
-
         const project = await assertTenantOwns(prisma, 'project', projectId, req.user.tenantId);
 
-        // Fetch full project content for snapshot
         const fullProject = await prisma.project.findUnique({
             where: { id: projectId },
-            include: {
-                sitePages: { include: { sections: true } }
-            }
-        });
-
-        // Generate static HTML, snapshot, or simply mark live
-        const publishedUrl = `https://${project.slug}.example.com`; // placeholder for real publishing logic
-
-        const updatedProject = await prisma.project.update({
-            where: { id: projectId },
-            data: { status: 'published', liveUrl: publishedUrl }
+            include: { sitePages: { include: { sections: true } } }
         });
 
         await prisma.version.create({
             data: {
                 projectId,
-                label: `v-${Date.now()}`,
-                snapshot: { pages: fullProject.sitePages }, // primitive snapshot
+                label: 'Before publish',
+                snapshot: fullProject,
                 createdById: req.user.id
             }
         });
 
-        return res.status(200).json({ success: true, publishedUrl, status: updatedProject.status });
+        const tenant = await prisma.tenant.findUnique({ where: { id: req.user.tenantId } });
+        const liveUrl = `https://${project.slug}.${tenant.slug}.sitepilot.app`;
+
+        const updated = await prisma.project.update({
+            where: { id: projectId },
+            data: {
+                status: 'published',
+                publishedAt: new Date(),
+                liveUrl
+            }
+        });
+
+        return res.status(200).json({
+            success: true,
+            status: 'published',
+            publishedAt: updated.publishedAt,
+            liveUrl: updated.liveUrl
+        });
     } catch (error) {
-        if (error.status === 403 || error.status === 404) return res.status(error.status).json({ success: false, message: error.message });
+        if (error.status === 403 || error.status === 404) return res.status(error.status).json({ success: false, error: error.message });
         console.error("Publish site error:", error);
-        return res.status(500).json({ success: false, message: "Internal server error" });
+        return res.status(500).json({ success: false, error: "Internal server error" });
+    }
+};
+
+// POST /api/sites/:projectId/unpublish
+export const unpublishSite = async (req, res) => {
+    try {
+        const { projectId } = req.params;
+        await assertTenantOwns(prisma, 'project', projectId, req.user.tenantId);
+
+        await prisma.project.update({
+            where: { id: projectId },
+            data: { status: 'draft', liveUrl: null }
+        });
+
+        return res.status(200).json({ success: true, status: 'draft' });
+    } catch (error) {
+        if (error.status === 403 || error.status === 404) return res.status(error.status).json({ success: false, error: error.message });
+        console.error("Unpublish site error:", error);
+        return res.status(500).json({ success: false, error: "Internal server error" });
+    }
+};
+
+// GET /api/sites/:projectId/versions
+export const getSiteVersions = async (req, res) => {
+    try {
+        const { projectId } = req.params;
+        await assertTenantOwns(prisma, 'project', projectId, req.user.tenantId);
+
+        const versions = await prisma.version.findMany({
+            where: { projectId },
+            orderBy: { createdAt: 'desc' },
+            take: 20,
+            select: { id: true, label: true, createdAt: true, createdById: true }
+        });
+
+        return res.status(200).json({ success: true, versions });
+    } catch (error) {
+        if (error.status === 403 || error.status === 404) return res.status(error.status).json({ success: false, error: error.message });
+        return res.status(500).json({ success: false, error: "Internal server error" });
+    }
+};
+
+// POST /api/sites/:projectId/versions/restore/:versionId
+export const restoreSiteVersion = async (req, res) => {
+    try {
+        const { projectId, versionId } = req.params;
+        await assertTenantOwns(prisma, 'project', projectId, req.user.tenantId);
+
+        const version = await prisma.version.findUnique({ where: { id: versionId } });
+        if (!version || version.projectId !== projectId) {
+            return res.status(404).json({ success: false, error: 'Version not found' });
+        }
+
+        const current = await prisma.project.findUnique({
+            where: { id: projectId },
+            include: { sitePages: { include: { sections: true } } }
+        });
+
+        await prisma.version.create({
+            data: {
+                projectId,
+                label: 'Before restore',
+                snapshot: current,
+                createdById: req.user.id
+            }
+        });
+
+        const snapshot = version.snapshot;
+
+        await prisma.siteSection.deleteMany({ where: { page: { projectId } } });
+        await prisma.sitePage.deleteMany({ where: { projectId } });
+
+        const snapPages = snapshot.sitePages || snapshot.pages || [];
+        for (const page of snapPages) {
+            await prisma.sitePage.create({
+                data: {
+                    projectId,
+                    name: page.name,
+                    slug: page.slug,
+                    navOrder: page.navOrder,
+                    isHome: page.isHome,
+                    sections: {
+                        create: (page.sections || []).map(s => ({
+                            componentType: s.componentType,
+                            variant: s.variant,
+                            slots: s.slots,
+                            orderIndex: s.orderIndex
+                        }))
+                    }
+                }
+            });
+        }
+
+        return res.status(200).json({ success: true, message: 'Restored successfully', versionId });
+    } catch (error) {
+        if (error.status === 403 || error.status === 404) return res.status(error.status).json({ success: false, error: error.message });
+        return res.status(500).json({ success: false, error: "Internal server error" });
+    }
+};
+
+// DELETE /api/sites/:projectId
+export const deleteSite = async (req, res) => {
+    try {
+        const { projectId } = req.params;
+        await assertTenantOwns(prisma, 'project', projectId, req.user.tenantId);
+
+        if (!['owner', 'admin'].includes(req.user.role)) {
+            return res.status(403).json({ success: false, error: 'Only owners and admins can delete sites' });
+        }
+
+        await prisma.siteSection.deleteMany({ where: { page: { projectId } } });
+        await prisma.sitePage.deleteMany({ where: { projectId } });
+        await prisma.version.deleteMany({ where: { projectId } });
+        await prisma.projectBranding.deleteMany({ where: { projectId } });
+        await prisma.project.delete({ where: { id: projectId } });
+
+        return res.status(200).json({ success: true, message: "Site deleted" });
+    } catch (error) {
+        if (error.status === 403 || error.status === 404) return res.status(error.status).json({ success: false, error: error.message });
+        console.error("Delete site error:", error);
+        return res.status(500).json({ success: false, error: "Internal server error" });
     }
 };

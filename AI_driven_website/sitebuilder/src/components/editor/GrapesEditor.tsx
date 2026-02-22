@@ -2,19 +2,18 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import {
-    ChevronDown, Palette, Monitor, Tablet, Smartphone,
-    Loader2, Sparkles, Save, Check, Send,
-} from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import grapesjs, { Editor } from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
 import { getSite, updateSite } from '@/lib/store';
 import { editSectionWithAI } from '@/lib/aiService';
 import { renderPageToHTML, renderSection, getBrandTokens } from '@/lib/htmlRenderer';
-import { getAllComponents } from '@/lib/componentRegistry';
 import { useToast } from '@/components/ui/Toast';
 import RightPanel from './RightPanel';
+import TopBar from './TopBar';
+import LeftPanel from './LeftPanel';
 import type { Site, Page, Section } from '@/lib/types';
+import { api } from '@/lib/api';
 
 export default function GrapesEditor() {
     const params = useParams();
@@ -28,9 +27,7 @@ export default function GrapesEditor() {
     const [editorReady, setEditorReady] = useState(false);
     const [site, setSite] = useState<Site | null>(null);
     const [currentPageId, setCurrentPageId] = useState<string>('');
-    const [pageDropdown, setPageDropdown] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
-    const [aiInput, setAiInput] = useState('');
     const [aiLoading, setAiLoading] = useState(false);
     const [device, setDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
 
@@ -85,7 +82,7 @@ export default function GrapesEditor() {
         editor.on('change:changesCount', () => {
             setSaveStatus('saving');
             if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-            saveTimerRef.current = setTimeout(() => {
+            saveTimerRef.current = setTimeout(async () => {
                 const editorHtml = editor.getHtml();
                 const editorCss = editor.getCss();
 
@@ -95,11 +92,20 @@ export default function GrapesEditor() {
                             ? { ...p, customHtml: editorHtml, customCss: editorCss }
                             : p
                     );
-                    updateSite(siteId, { pages: updatedPages as Page[] });
-                    setSite((prev) => prev ? { ...prev, pages: updatedPages as Page[] } : prev);
+
+                    try {
+                        // PUT API call is embedded in updateSite or directly here if preferred
+                        // Actually in store.ts `updateSite` we map through pages and call put.
+                        // So we pass the page updates to `updateSite` perfectly.
+                        await updateSite(siteId, { pages: updatedPages as Page[] });
+                        setSite((prev) => prev ? { ...prev, pages: updatedPages as Page[] } : prev);
+                        setSaveStatus('saved');
+                        setTimeout(() => setSaveStatus('idle'), 2000);
+                    } catch (e) {
+                        showToast('Failed to save', 'error');
+                        setSaveStatus('idle');
+                    }
                 }
-                setSaveStatus('saved');
-                setTimeout(() => setSaveStatus('idle'), 2000);
             }, 2000);
         });
 
@@ -130,7 +136,6 @@ export default function GrapesEditor() {
         const html = renderPageToHTML(page, tokens);
         editorRef.current.setComponents(html);
         setCurrentPageId(pageId);
-        setPageDropdown(false);
     }, [site]);
 
     // Device switching
@@ -157,7 +162,7 @@ export default function GrapesEditor() {
     }, [site, showToast]);
 
     // AI edit
-    const handleAiEdit = useCallback(async () => {
+    const handleAiEdit = useCallback(async (aiInput: string) => {
         if (!aiInput.trim() || !editorRef.current || !site) return;
         const selected = editorRef.current.getSelected();
         if (!selected) {
@@ -184,24 +189,37 @@ export default function GrapesEditor() {
             const tokens = getBrandTokens(site);
             const newHtml = renderSection(result as Section, tokens);
             selected.replaceWith(newHtml);
-            setAiInput('');
             showToast('AI edit applied!', 'success');
         } catch (err) {
             showToast((err as Error).message, 'error');
         } finally {
             setAiLoading(false);
         }
-    }, [aiInput, site, showToast]);
+    }, [site, showToast]);
 
     // Publish
-    const handlePublish = useCallback(() => {
-        if (!site) return;
-        updateSite(siteId, { status: 'published' });
-        setSite((prev) => prev ? { ...prev, status: 'published' } : prev);
-        showToast('🎉 Site published!', 'success');
+    const handlePublish = useCallback(async () => {
+        if (!site || !siteId) return;
+        try {
+            const res = await api.post(`/api/sites/${siteId}/publish`, {});
+            if (res.success) {
+                setSite((prev) => prev ? { ...prev, status: 'published', liveUrl: res.liveUrl } : prev);
+                showToast(`Published! Live at ${res.liveUrl}`, 'success');
+            } else {
+                showToast(res.error || 'Failed to publish', 'error');
+            }
+        } catch (e) {
+            showToast('Failed to publish', 'error');
+        }
     }, [site, siteId, showToast]);
 
-    if (!site) {
+    // Restore version
+    const handleRestoreVersion = useCallback(() => {
+        // Simple reload to fetch latest restored DB state
+        window.location.reload();
+    }, []);
+
+    if (!site || !currentPageId) {
         return (
             <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center">
                 <Loader2 className="w-6 h-6 text-purple-500 animate-spin" />
@@ -209,189 +227,31 @@ export default function GrapesEditor() {
         );
     }
 
-    const allComponents = getAllComponents();
-    const componentsByCategory = new Map<string, typeof allComponents>();
-    for (const c of allComponents) {
-        const list = componentsByCategory.get(c.category) ?? [];
-        list.push(c);
-        componentsByCategory.set(c.category, list);
-    }
-
     return (
         <div className="h-screen flex flex-col bg-[#0f0f0f] overflow-hidden">
-            {/* ─── TOP BAR ─────────────────────────────────────────── */}
-            <div className="h-12 bg-[#0f0f0f] border-b border-[#1a1a1a] flex items-center px-3 gap-2 shrink-0 z-20">
-                {/* Logo / Back */}
-                <button
-                    onClick={() => router.push('/dashboard')}
-                    className="flex items-center gap-2 text-gray-400 hover:text-white transition mr-2"
-                >
-                    <div className="w-6 h-6 rounded bg-gradient-to-br from-purple-600 to-blue-500 flex items-center justify-center">
-                        <Sparkles className="w-3.5 h-3.5 text-white" />
-                    </div>
-                </button>
+            <TopBar
+                site={site}
+                currentPageId={currentPageId}
+                switchPage={switchPage}
+                saveStatus={saveStatus}
+                device={device}
+                switchDevice={switchDevice}
+                handlePublish={handlePublish}
+            />
 
-                {/* Site name + save status */}
-                <span className="text-sm text-white font-medium truncate max-w-[140px]">{site.name}</span>
-                <div className="flex items-center gap-1 mr-2">
-                    {saveStatus === 'saving' && (
-                        <span className="text-[10px] text-gray-500 flex items-center gap-1">
-                            <div className="w-1.5 h-1.5 rounded-full bg-yellow-500" /> Saving...
-                        </span>
-                    )}
-                    {saveStatus === 'saved' && (
-                        <span className="text-[10px] text-gray-500 flex items-center gap-1">
-                            <div className="w-1.5 h-1.5 rounded-full bg-green-500" /> Saved
-                        </span>
-                    )}
-                </div>
-
-                {/* Divider */}
-                <div className="w-px h-5 bg-[#2e2e2e] mx-1" />
-
-                {/* Page Switcher */}
-                <div className="relative">
-                    <button
-                        onClick={() => setPageDropdown(!pageDropdown)}
-                        className="flex items-center gap-1.5 px-2 py-1 rounded text-xs text-gray-300 hover:text-white hover:bg-[#1a1a1a] transition"
-                    >
-                        {currentPage?.name ?? 'Page'}
-                        <ChevronDown className="w-3.5 h-3.5" />
-                    </button>
-                    {pageDropdown && (
-                        <div className="absolute top-full left-0 mt-1 bg-[#1a1a1a] border border-[#2e2e2e] rounded-lg shadow-xl py-1 w-40 z-30">
-                            {site.pages.map((p) => (
-                                <button
-                                    key={p.id}
-                                    onClick={() => switchPage(p.id)}
-                                    className={`w-full text-left px-3 py-1.5 text-xs transition ${p.id === currentPageId
-                                        ? 'text-purple-400 bg-purple-500/10'
-                                        : 'text-gray-300 hover:bg-[#242424]'
-                                        }`}
-                                >
-                                    {p.name}
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                {/* Divider */}
-                <div className="w-px h-5 bg-[#2e2e2e] mx-1" />
-
-                {/* Style Guide */}
-                <button
-                    onClick={() => router.push(`/styleguide/${siteId}`)}
-                    className="flex items-center gap-1.5 px-2 py-1 rounded text-xs text-gray-400 hover:text-white hover:bg-[#1a1a1a] transition"
-                    title="Style Guide"
-                >
-                    <Palette className="w-3.5 h-3.5" />
-                    <span className="hidden lg:inline">Style Guide</span>
-                </button>
-
-                {/* Divider */}
-                <div className="w-px h-5 bg-[#2e2e2e] mx-1" />
-
-                {/* Device switcher */}
-                <div className="flex items-center gap-0.5">
-                    <button
-                        onClick={() => switchDevice('desktop')}
-                        className={`p-1.5 rounded transition ${device === 'desktop' ? 'text-white bg-[#1a1a1a]' : 'text-gray-500 hover:text-gray-300'}`}
-                    >
-                        <Monitor className="w-4 h-4" />
-                    </button>
-                    <button
-                        onClick={() => switchDevice('tablet')}
-                        className={`p-1.5 rounded transition ${device === 'tablet' ? 'text-white bg-[#1a1a1a]' : 'text-gray-500 hover:text-gray-300'}`}
-                    >
-                        <Tablet className="w-4 h-4" />
-                    </button>
-                    <button
-                        onClick={() => switchDevice('mobile')}
-                        className={`p-1.5 rounded transition ${device === 'mobile' ? 'text-white bg-[#1a1a1a]' : 'text-gray-500 hover:text-gray-300'}`}
-                    >
-                        <Smartphone className="w-4 h-4" />
-                    </button>
-                </div>
-
-                {/* Spacer */}
-                <div className="flex-1" />
-
-                {/* Publish */}
-                <button
-                    onClick={handlePublish}
-                    className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold px-4 py-1.5 rounded-lg transition flex items-center gap-1.5"
-                >
-                    {site.status === 'published' ? (
-                        <><Check className="w-3.5 h-3.5" /> Published</>
-                    ) : (
-                        'Publish'
-                    )}
-                </button>
-            </div>
-
-            {/* ─── MAIN BODY ───────────────────────────────────────── */}
             <div className="flex flex-1 overflow-hidden">
-                {/* LEFT PANEL — Blocks + AI */}
-                <div className="w-[260px] bg-[#0f0f0f] border-r border-[#1a1a1a] flex flex-col shrink-0 overflow-y-auto">
-                    {/* Blocks / Components */}
-                    <div className="p-3 border-b border-[#1a1a1a]">
-                        <h3 className="text-[10px] uppercase tracking-widest text-gray-500 font-semibold mb-2">Components</h3>
-                        <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-1">
-                            {Array.from(componentsByCategory.entries()).map(([cat, comps]) => (
-                                <div key={cat}>
-                                    <p className="text-[10px] uppercase tracking-wider text-gray-600 mb-1">{cat}</p>
-                                    <div className="space-y-0.5">
-                                        {comps.map((c) => (
-                                            <button
-                                                key={c.name}
-                                                onClick={() => addSection(c.name)}
-                                                className="w-full text-left px-2 py-1.5 text-xs text-gray-400 hover:text-white hover:bg-[#1a1a1a] rounded transition truncate"
-                                            >
-                                                {c.name}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+                <LeftPanel
+                    siteId={siteId}
+                    addSection={addSection}
+                    handleAiEdit={handleAiEdit}
+                    aiLoading={aiLoading}
+                    onRestoreVersion={handleRestoreVersion}
+                />
 
-                    {/* AI Edit Panel */}
-                    <div className="p-3 flex-1">
-                        <h3 className="text-[10px] uppercase tracking-widest text-gray-500 font-semibold mb-2 flex items-center gap-1">
-                            <Sparkles className="w-3 h-3 text-purple-400" /> AI Edit
-                        </h3>
-                        <p className="text-[10px] text-gray-600 mb-2">
-                            Select an element on canvas, then describe your edit.
-                        </p>
-                        <textarea
-                            value={aiInput}
-                            onChange={(e) => setAiInput(e.target.value)}
-                            placeholder="e.g. Make the headline more energetic and add a secondary CTA"
-                            rows={4}
-                            className="w-full bg-[#1a1a1a] border border-[#2e2e2e] rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 resize-none focus:outline-none focus:border-purple-500 transition"
-                        />
-                        <button
-                            onClick={handleAiEdit}
-                            disabled={aiLoading || !aiInput.trim()}
-                            className="mt-2 w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white text-xs font-semibold py-2 rounded-lg transition flex items-center justify-center gap-1.5"
-                        >
-                            {aiLoading ? (
-                                <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Applying...</>
-                            ) : (
-                                <><Send className="w-3.5 h-3.5" /> Apply AI Edit</>
-                            )}
-                        </button>
-                    </div>
-                </div>
-
-                {/* CANVAS */}
-                <div className="flex-1 bg-[#1a1a1a] overflow-hidden">
+                <div className="flex-1 bg-[#1a1a1a] overflow-hidden relative">
                     <div ref={containerRef} className="h-full w-full" />
                 </div>
 
-                {/* RIGHT PANEL — Styles */}
                 {editorReady && (
                     <RightPanel editor={editorRef.current} site={site} />
                 )}

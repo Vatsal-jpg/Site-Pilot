@@ -16,8 +16,7 @@ export default function StyleGuidePage() {
     const logoInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        const s = getSite(siteId);
-        setSite(s);
+        getSite(siteId).then(s => setSite(s));
     }, [siteId]);
 
     if (!site) {

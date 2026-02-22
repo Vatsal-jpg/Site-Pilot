@@ -7,7 +7,10 @@ import {
     getSiteByProjectId,
     updatePageSections,
     deleteSite,
-    publishSite
+    publishSite,
+    unpublishSite,
+    getSiteVersions,
+    restoreSiteVersion
 } from "../controllers/sites.controllers.js";
 
 const router = Router();
@@ -124,5 +127,8 @@ router.get("/:projectId", authMiddleware, getSiteByProjectId);
 router.put("/:projectId/pages/:pageId", authMiddleware, updatePageSections);
 router.delete("/:projectId", authMiddleware, deleteSite);
 router.post("/:projectId/publish", authMiddleware, publishSite);
+router.post("/:projectId/unpublish", authMiddleware, unpublishSite);
+router.get("/:projectId/versions", authMiddleware, getSiteVersions);
+router.post("/:projectId/versions/restore/:versionId", authMiddleware, restoreSiteVersion);
 
 export default router;

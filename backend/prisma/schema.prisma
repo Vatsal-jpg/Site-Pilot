@@ -73,6 +73,7 @@ model Project {
   status         ProjectStatus    @default(draft)
   liveUrl        String?
   userPrompt     String?
+  publishedAt    DateTime?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   aiUsage        AIUsage[]
@@ -169,14 +170,18 @@ model SiteSection {
 }
 
 model SitePage {
-  id        String        @id @default(cuid())
-  name      String
-  slug      String
-  navOrder  Int           @default(0)
-  projectId String
-  project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  sections  SiteSection[]
-  createdAt DateTime      @default(now())
+  id          String        @id @default(cuid())
+  name        String
+  slug        String
+  navOrder    Int           @default(0)
+  projectId   String
+  customHtml  String?
+  customCss   String?
+  isHome      Boolean       @default(false)
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sections    SiteSection[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 }
 
 model SiteGeneration {
