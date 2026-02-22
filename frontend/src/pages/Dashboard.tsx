@@ -370,11 +370,10 @@ const Dashboard = () => {
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-sm font-medium text-foreground truncate">{project.name}</h4>
                     <Badge
-                      className={`text-[10px] px-2 py-0.5 font-semibold uppercase tracking-wide ${
-                        project.status === "live"
+                      className={`text-[10px] px-2 py-0.5 font-semibold uppercase tracking-wide ${project.status === "live"
                           ? "bg-green-100 text-green-700 hover:bg-green-100"
                           : "bg-amber-100 text-amber-700 hover:bg-amber-100"
-                      }`}
+                        }`}
                     >
                       {project.status === "live" ? "Live" : "Draft"}
                     </Badge>
