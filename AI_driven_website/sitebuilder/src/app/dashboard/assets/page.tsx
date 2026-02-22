@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Upload, X, Copy, Image as ImageIcon, CheckCircle2 } from 'lucide-react';
+import { NEXT_PUBLIC_API_URL } from '@/lib/api';
 
 interface Asset {
     id: string;
@@ -24,14 +25,14 @@ export default function AssetsPage() {
 
     const fetchAssets = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`/api/assets${filter === 'image' ? '?type=image' : ''}`, {
+            const token = localStorage.getItem('auth_token');
+            const res = await fetch(`${NEXT_PUBLIC_API_URL}/api/assets${filter === 'image' ? '?type=image' : ''}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const data = await res.json();
             if (data.assets) setAssets(data.assets);
 
-            const usageRes = await fetch(`/api/assets/usage`, {
+            const usageRes = await fetch(`${NEXT_PUBLIC_API_URL}/api/assets/usage`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const usageData = await usageRes.json();
@@ -58,8 +59,8 @@ export default function AssetsPage() {
         formData.append('file', file);
 
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch('/api/assets/upload', {
+            const token = localStorage.getItem('auth_token');
+            const res = await fetch(`${NEXT_PUBLIC_API_URL}/api/assets/upload`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
                 body: formData,
@@ -82,8 +83,8 @@ export default function AssetsPage() {
     const handleDelete = async (id: string) => {
         if (!confirm('Delete this asset?')) return;
         try {
-            const token = localStorage.getItem('token');
-            await fetch(`/api/assets/${id}`, {
+            const token = localStorage.getItem('auth_token');
+            await fetch(`${NEXT_PUBLIC_API_URL}/api/assets/${id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` }
             });
