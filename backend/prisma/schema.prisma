@@ -8,22 +8,22 @@ datasource db {
 }
 
 model Tenant {
-  id               String    @id @default(cuid())
-  name             String    @default("Unnamed Tenant")
+  id               String           @id @default(cuid())
+  name             String           @default("Unnamed Tenant")
   orgName          String
-  slug             String    @unique
-  plan             Plan      @default(starter)
-  status           String    @default("active")
-  storageUsedBytes BigInt    @default(0)
-  aiCreditsUsed    Int       @default(0)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  slug             String           @unique
+  plan             Plan             @default(starter)
+  status           String           @default("active")
+  storageUsedBytes BigInt           @default(0)
+  aiCreditsUsed    Int              @default(0)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
   aiUsage          AIUsage[]
   assets           Asset[]
   invites          Invite[]
   projects         Project[]
-  users            User[]
   generations      SiteGeneration[]
+  users            User[]
 }
 
 model User {
@@ -44,10 +44,6 @@ model User {
   versions     Version[]
 }
 
-// ── Template ────────────────────────────────────────────────────────────────
-// Templates are now prompt-based. No component registry in the DB.
-// suggestedComponents is a string array like ["navbar","hero","footer"].
-
 model Template {
   id                  String    @id @default(cuid())
   name                String
@@ -62,8 +58,6 @@ model Template {
   projects            Project[]
 }
 
-// ── Project ──────────────────────────────────────────────────────────────────
-
 model Project {
   id             String           @id @default(cuid())
   tenantId       String
@@ -76,6 +70,11 @@ model Project {
   publishedAt    DateTime?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
+  brandColor     String?
+  palette        Json?
+  logoUrl        String?
+  uploadedImages Json?
+  businessType   String?
   aiUsage        AIUsage[]
   assets         Asset[]
   deployments    Deployment[]
@@ -85,14 +84,9 @@ model Project {
   tenant         Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   branding       ProjectBranding?
   members        ProjectMember[]
-  versions       Version[]
-  brandColor     String?
-  palette        Json?
-  logoUrl        String?
-  uploadedImages Json?
-  businessType   String?
-  sitePages      SitePage[]
   generations    SiteGeneration[]
+  sitePages      SitePage[]
+  versions       Version[]
 
   @@unique([tenantId, slug])
 }
@@ -118,12 +112,6 @@ model ProjectBranding {
   palette        Json?
   project        Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
-
-// ── Pages + Components ────────────────────────────────────────────────────────
-// PageComponent no longer references a DB Component row.
-// componentId is just a string ("hero", "navbar", etc).
-// layout JSON stores visual options chosen in the builder.
-// generatedHtml stores Gemini's output for this component.
 
 model Page {
   id          String          @id @default(cuid())
@@ -152,14 +140,12 @@ model PageComponent {
   spacing       String          @default("medium")
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
+  chats         ComponentChat[]
   page          Page            @relation(fields: [pageId], references: [id], onDelete: Cascade)
   project       Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  chats         ComponentChat[]
 
   @@index([pageId, orderIndex])
 }
-
-// ── Site Models (New AI Backend) ──────────────────────────────────────────────
 
 model SiteSection {
   id            String   @id @default(cuid())
@@ -172,46 +158,42 @@ model SiteSection {
 }
 
 model SitePage {
-  id          String        @id @default(cuid())
-  name        String
-  slug        String
-  navOrder    Int           @default(0)
-  projectId   String
-  customHtml  String?
-  customCss   String?
-  isHome      Boolean       @default(false)
-  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  sections    SiteSection[]
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id         String        @id @default(cuid())
+  name       String
+  slug       String
+  navOrder   Int           @default(0)
+  projectId  String
+  customHtml String?
+  customCss  String?
+  isHome     Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  project    Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sections   SiteSection[]
 }
 
 model SiteGeneration {
-  id           String   @id @default(cuid())
-  projectId    String
-  tenantId     String
-  prompt       String
-  structure    Json
-  palette      Json?
-  status       String   @default("generating")
-  tokensUsed   Int      @default(0)
-  createdAt    DateTime @default(now())
-  project      Project  @relation(fields: [projectId], references: [id])
-  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  id         String   @id @default(cuid())
+  projectId  String
+  tenantId   String
+  prompt     String
+  structure  Json
+  palette    Json?
+  status     String   @default("generating")
+  tokensUsed Int      @default(0)
+  createdAt  DateTime @default(now())
+  project    Project  @relation(fields: [projectId], references: [id])
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
 }
-
-// ── ComponentChat — per-component AI chat history ────────────────────────────
 
 model ComponentChat {
   id              String        @id @default(cuid())
   pageComponentId String
-  role            String        // "user" | "assistant"
+  role            String
   message         String
   createdAt       DateTime      @default(now())
   pageComponent   PageComponent @relation(fields: [pageComponentId], references: [id], onDelete: Cascade)
 }
-
-// ── Supporting models (unchanged) ────────────────────────────────────────────
 
 model Asset {
   id           String    @id @default(cuid())
@@ -298,8 +280,6 @@ model AIUsage {
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user        User     @relation(fields: [userId], references: [id])
 }
-
-// ── Enums ────────────────────────────────────────────────────────────────────
 
 enum Plan {
   starter
