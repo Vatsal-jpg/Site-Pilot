@@ -429,6 +429,48 @@ const RESPONSIVE_CSS = `
 `;
 
 export function renderPageToHTML(page: Page, tokens: BrandTokens): string {
+  // If the page was previously edited in GrapesJS and has saved HTML, use it directly
+  if ((page as any).customHtml) {
+    const savedHtml = (page as any).customHtml;
+    const savedCss = (page as any).customCss || '';
+    // If it already looks like a full document, return as-is
+    if (savedHtml.trim().startsWith('<!DOCTYPE') || savedHtml.trim().startsWith('<html')) {
+      return savedHtml;
+    }
+    // Otherwise wrap it with brand tokens
+    const fontHeadingUrl = encodeURIComponent(tokens.fontHeading);
+    const fontBodyUrl = encodeURIComponent(tokens.fontBody);
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${esc(page.name)}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=${fontHeadingUrl}:wght@400;600;700;800&family=${fontBodyUrl}:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-primary: ${tokens.colorPrimary};
+      --color-bg: ${tokens.colorBg};
+      --color-surface: ${tokens.colorSurface};
+      --color-text: ${tokens.colorText};
+      --color-accent: ${tokens.colorAccent};
+      --font-heading: '${tokens.fontHeading}', sans-serif;
+      --font-body: '${tokens.fontBody}', sans-serif;
+      --radius: ${tokens.borderRadius};
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); }
+    a { text-decoration: none; }
+    ${savedCss}
+  </style>
+</head>
+<body>
+${savedHtml}
+</body>
+</html>`;
+  }
+
   const sectionsHTML = page.sections
     .map((section) => renderSection(section, tokens))
     .join('\n');

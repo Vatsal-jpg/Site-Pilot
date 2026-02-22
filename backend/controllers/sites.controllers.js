@@ -1,6 +1,8 @@
 import prisma from "../utils/prisma.js";
 import { assertTenantOwns } from "../middlewares/tenantScope.js";
 import PLAN_LIMITS from "../utils/planLimits.js";
+import axios from 'axios';
+import { pushToGithub } from "../utils/github.js";
 
 // POST /api/sites/create
 export const createSite = async (req, res) => {
@@ -215,34 +217,56 @@ export const updatePageSections = async (req, res) => {
 };
 
 // POST /api/sites/:projectId/publish
+
+
 export const publishSite = async (req, res) => {
     try {
         const { projectId } = req.params;
         const project = await assertTenantOwns(prisma, 'project', projectId, req.user.tenantId);
 
+        // 1. Get full project data (including pages and sections)
         const fullProject = await prisma.project.findUnique({
             where: { id: projectId },
-            include: { sitePages: { include: { sections: true } } }
+            include: {
+                sitePages: {
+                    include: { sections: true }
+                },
+                tenant: true // To help with the slug/domain logic
+            }
         });
 
+        // 2. Create a Version/Snapshot before publishing
         await prisma.version.create({
             data: {
                 projectId,
-                label: 'Before publish',
+                label: 'Pre-deployment snapshot',
                 snapshot: fullProject,
                 createdById: req.user.id
             }
         });
 
-        const tenant = await prisma.tenant.findUnique({ where: { id: req.user.tenantId } });
-        const liveUrl = `https://${project.slug}.${tenant.slug}.sitepilot.app`;
+        // 3. Push to GitHub
+        // This utility (see step 3) generates the dist folder and returns the repo URL
+        const repoUrl = await pushToGithub(fullProject);
 
+        // 4. Trigger Deployment Server using environment variable
+        const deployEndpoint = `${process.env.DEPLOYMENT_SERVER_URL}/deploy`;
+
+        const deployResponse = await axios.post(deployEndpoint, {
+            repo: repoUrl,
+            slug: project.slug
+        });
+
+        // Your deployment server returns: { message, deployment: { url, deploymentId, ... } }
+        const { url, deploymentId } = deployResponse.data.deployment;
+
+        // 5. Update Project Status in DB
         const updated = await prisma.project.update({
             where: { id: projectId },
             data: {
                 status: 'published',
                 publishedAt: new Date(),
-                liveUrl
+                liveUrl: url
             }
         });
 
@@ -250,12 +274,15 @@ export const publishSite = async (req, res) => {
             success: true,
             status: 'published',
             publishedAt: updated.publishedAt,
-            liveUrl: updated.liveUrl
+            liveUrl: updated.liveUrl,
+            deploymentId: deploymentId
         });
     } catch (error) {
-        if (error.status === 403 || error.status === 404) return res.status(error.status).json({ success: false, error: error.message });
+        if (error.status === 403 || error.status === 404) {
+            return res.status(error.status).json({ success: false, error: error.message });
+        }
         console.error("Publish site error:", error);
-        return res.status(500).json({ success: false, error: "Internal server error" });
+        return res.status(500).json({ success: false, error: "Deployment failed" });
     }
 };
 

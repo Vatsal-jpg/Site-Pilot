@@ -24,6 +24,8 @@ export interface Page {
   name: string;
   slug: string;
   sections: Section[];
+  customHtml?: string;
+  customCss?: string;
 }
 
 export interface Site {

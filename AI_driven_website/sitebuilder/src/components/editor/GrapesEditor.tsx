@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { updatePageContent } from '@/lib/store';
 import grapesjs, { Editor } from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
 import { getSite, updateSite } from '@/lib/store';
@@ -87,17 +88,20 @@ export default function GrapesEditor() {
                 const editorCss = editor.getCss();
 
                 if (site && currentPage) {
+                    const updatedPage = {
+                        ...currentPage,
+                        customHtml: editorHtml,
+                        customCss: editorCss
+                    };
+
                     const updatedPages = site.pages.map((p) =>
-                        p.id === currentPage.id
-                            ? { ...p, customHtml: editorHtml, customCss: editorCss }
-                            : p
+                        p.id === currentPage.id ? updatedPage : p
                     );
 
                     try {
-                        // PUT API call is embedded in updateSite or directly here if preferred
-                        // Actually in store.ts `updateSite` we map through pages and call put.
-                        // So we pass the page updates to `updateSite` perfectly.
-                        await updateSite(siteId, { pages: updatedPages as Page[] });
+                        // ONLY send the single page to the backend
+                        await updatePageContent(siteId, updatedPage);
+
                         setSite((prev) => prev ? { ...prev, pages: updatedPages as Page[] } : prev);
                         setSaveStatus('saved');
                         setTimeout(() => setSaveStatus('idle'), 2000);

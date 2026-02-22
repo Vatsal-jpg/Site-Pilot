@@ -24,6 +24,8 @@ function convertProjectToSite(project: any): Site {
             id: p.id,
             name: p.name,
             slug: p.slug,
+            customHtml: p.customHtml || undefined,
+            customCss: p.customCss || undefined,
             sections: (p.sections || []).map((s: any) => ({
                 id: s.id,
                 componentType: s.componentType,
@@ -127,6 +129,27 @@ export async function deleteSite(id: string): Promise<void> {
         await api.delete(`/api/sites/${id}`);
     } catch (e) {
         console.error("Failed to delete site via API", e);
+        throw e;
+    }
+}
+
+/**
+ * Optimized single-page update — avoids looping through ALL pages during auto-save.
+ */
+export async function updatePageContent(projectId: string, page: any): Promise<void> {
+    try {
+        await api.put(`/api/sites/${projectId}/pages/${page.id}`, {
+            sections: page.sections.map((s: any, idx: number) => ({
+                componentType: s.componentType,
+                variant: s.variant,
+                slots: s.slots,
+                orderIndex: idx
+            })),
+            customHtml: page.customHtml,
+            customCss: page.customCss,
+        });
+    } catch (e) {
+        console.error("Failed to update page via API", e);
         throw e;
     }
 }
