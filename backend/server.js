@@ -11,6 +11,10 @@ import templatesRouter from "./routes/templates.routes.js"
 import assetsRouter from "./routes/assets.routes.js"
 import builderRouter from "./routes/builder.routes.js"
 import aiRouter from "./routes/ai.routes.js"
+import sitesRouter from "./routes/sites.routes.js"
+import teamRouter from "./routes/team.routes.js"
+import tenantRouter from "./routes/tenant.routes.js"
+import billingRouter from "./routes/billing.routes.js"
 
 // Middleware imports
 import responseFormatter from "./middlewares/response.js"
@@ -31,6 +35,10 @@ app.use("/api/templates", templatesRouter)
 app.use("/api/assets", assetsRouter)
 app.use("/api/builder", builderRouter)
 app.use("/api/ai", aiRouter)
+app.use("/api/sites", sitesRouter)
+app.use("/api/team", teamRouter)
+app.use("/api/tenant", tenantRouter)
+app.use("/api/billing", billingRouter)
 
 // Health check
 app.get("/api/health", (req, res) => {

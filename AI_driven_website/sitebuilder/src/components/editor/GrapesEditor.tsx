@@ -9,6 +9,7 @@ import {
 import grapesjs, { Editor } from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
 import { getSite, updateSite } from '@/lib/store';
+import { editSectionWithAI } from '@/lib/aiService';
 import { renderPageToHTML, renderSection, getBrandTokens } from '@/lib/htmlRenderer';
 import { getAllComponents } from '@/lib/componentRegistry';
 import { useToast } from '@/components/ui/Toast';
@@ -35,15 +36,18 @@ export default function GrapesEditor() {
 
     // Load site
     useEffect(() => {
-        const s = getSite(siteId);
-        if (!s) {
-            router.push('/dashboard');
-            return;
+        async function fetchSite() {
+            const s = await getSite(siteId);
+            if (!s) {
+                router.push('/dashboard');
+                return;
+            }
+            setSite(s);
+            if (s.pages.length > 0) {
+                setCurrentPageId(s.pages[0].id);
+            }
         }
-        setSite(s);
-        if (s.pages.length > 0) {
-            setCurrentPageId(s.pages[0].id);
-        }
+        fetchSite();
     }, [siteId, router]);
 
     const currentPage = site?.pages.find((p) => p.id === currentPageId) ?? null;
@@ -163,30 +167,20 @@ export default function GrapesEditor() {
 
         setAiLoading(true);
         try {
-            const res = await fetch('/api/ai', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'editSection',
-                    payload: {
-                        instruction: aiInput,
-                        currentSection: {
-                            componentType: selected.getName?.() || 'Unknown',
-                            variant: 'dark',
-                            slots: {},
-                        },
-                        siteContext: {
-                            siteName: site.name,
-                            brandColor: site.brandColor,
-                            businessType: site.businessType,
-                        },
-                    },
-                }),
+            const result = await editSectionWithAI({
+                instruction: aiInput,
+                currentSection: {
+                    id: crypto.randomUUID(),
+                    componentType: selected.getName?.() || 'Unknown',
+                    variant: 'dark',
+                    slots: {},
+                },
+                siteContext: {
+                    siteName: site.name,
+                    brandColor: site.brandColor,
+                    businessType: site.businessType,
+                },
             });
-
-            if (!res.ok) throw new Error('AI edit failed');
-
-            const result = await res.json();
             const tokens = getBrandTokens(site);
             const newHtml = renderSection(result as Section, tokens);
             selected.replaceWith(newHtml);

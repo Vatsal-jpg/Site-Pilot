@@ -12,6 +12,7 @@ model Tenant {
   orgName          String
   slug             String    @unique
   plan             Plan      @default(starter)
+  status           String    @default("active")
   storageUsedBytes BigInt    @default(0)
   aiCreditsUsed    Int       @default(0)
   createdAt        DateTime  @default(now())
@@ -21,6 +22,7 @@ model Tenant {
   invites          Invite[]
   projects         Project[]
   users            User[]
+  generations      SiteGeneration[]
 }
 
 model User {
@@ -80,6 +82,13 @@ model Project {
   branding       ProjectBranding?
   members        ProjectMember[]
   versions       Version[]
+  brandColor     String?
+  palette        Json?
+  logoUrl        String?
+  uploadedImages Json?
+  businessType   String?
+  sitePages      SitePage[]
+  generations    SiteGeneration[]
 
   @@unique([tenantId, slug])
 }
@@ -141,6 +150,42 @@ model PageComponent {
   @@index([pageId, orderIndex])
 }
 
+// ── Site Models (New AI Backend) ──────────────────────────────────────────────
+
+model SiteSection {
+  id            String   @id @default(cuid())
+  componentType String
+  variant       String   @default("dark")
+  slots         Json
+  orderIndex    Int
+  pageId        String
+  page          SitePage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+}
+
+model SitePage {
+  id        String        @id @default(cuid())
+  name      String
+  slug      String
+  projectId String
+  project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sections  SiteSection[]
+  createdAt DateTime      @default(now())
+}
+
+model SiteGeneration {
+  id           String   @id @default(cuid())
+  projectId    String
+  tenantId     String
+  prompt       String
+  structure    Json
+  palette      Json?
+  status       String   @default("generating")
+  tokensUsed   Int      @default(0)
+  createdAt    DateTime @default(now())
+  project      Project  @relation(fields: [projectId], references: [id])
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+}
+
 // ── ComponentChat — per-component AI chat history ────────────────────────────
 
 model ComponentChat {
@@ -158,8 +203,10 @@ model Asset {
   id         String    @id @default(cuid())
   tenantId   String
   projectId  String?
-  b2Key      String
-  b2Url      String
+  b2Key      String?
+  b2Url      String?
+  url        String?
+  mimeType   String?
   fileName   String
   sizeBytes  BigInt
   assetType  AssetType @default(general)

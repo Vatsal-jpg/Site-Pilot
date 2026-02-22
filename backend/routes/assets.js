@@ -1,9 +1,9 @@
-import express from 'express';
-import prisma from '../utils/prisma.js';
-import authMiddleware from '../middlewares/auth.js';
-import multer from 'multer';
-
+const express = require('express');
 const router = express.Router();
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+const authMiddleware = require('../middleware/authMiddleware');
+const multer = require('multer');
 
 // Configure multer for memory storage
 const upload = multer({
@@ -115,4 +115,4 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
 });
 
-export default router;
+module.exports = router;

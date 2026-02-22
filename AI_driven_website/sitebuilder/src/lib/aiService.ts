@@ -1,5 +1,6 @@
 import { saveSite } from '@/lib/store';
 import type { Section, Page, Site } from '@/lib/types';
+import { api } from '@/lib/api';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -8,32 +9,30 @@ function uuid(): string {
 }
 
 async function callAPI(action: string, payload: unknown, retries = 2): Promise<unknown> {
-    try {
-        const res = await fetch('/api/ai', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action, payload }),
-        });
+    const endpointMap: Record<string, string> = {
+        generateStructure: '/api/ai/generate-structure',
+        generateContent: '/api/ai/generate-content',
+        editSection: '/api/ai/edit-section',
+    };
 
-        if (res.status === 429) {
-            // Rate limited — wait 3 seconds and retry
+    const endpoint = endpointMap[action];
+    if (!endpoint) throw new Error(`Unknown API action: ${action}`);
+
+    try {
+        const res = await api.post(endpoint, payload);
+        return res; // Note: api.post already handles returning JSON
+    } catch (err: any) {
+        if (err.message && err.message.toLowerCase().includes('rate limit')) {
             if (retries > 0) {
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                await new Promise((resolve) => setTimeout(resolve, 3000));
                 return callAPI(action, payload, retries - 1);
             }
             throw new Error('Rate limit reached. Please wait a moment and try again.');
         }
 
-        if (!res.ok) {
-            const err = await res.json().catch(() => ({ error: 'Unknown error' }));
-            throw new Error(err.error || `API error: ${res.status}`);
-        }
-
-        return res.json();
-    } catch (err) {
         if (retries > 0 && err instanceof TypeError) {
             // Network error — retry once
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise((resolve) => setTimeout(resolve, 1000));
             return callAPI(action, payload, retries - 1);
         }
         throw err;

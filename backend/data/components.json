@@ -1,0 +1,1980 @@
+{
+    "NavBar": {
+        "name": "NavBar",
+        "category": "Navigation",
+        "description": "Standard horizontal navigation bar with logo, links, and CTA button",
+        "variants": [
+            "dark",
+            "light",
+            "transparent"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "logoUrl",
+                "type": "image",
+                "label": "Logo",
+                "required": true
+            },
+            {
+                "key": "links",
+                "type": "list",
+                "label": "Navigation Links",
+                "required": true,
+                "default": [],
+                "maxItems": 5,
+                "itemShape": {
+                    "label": "text",
+                    "url": "text"
+                }
+            },
+            {
+                "key": "ctaLabel",
+                "type": "text",
+                "label": "CTA Button Label",
+                "required": false,
+                "default": "Get Started"
+            },
+            {
+                "key": "ctaUrl",
+                "type": "text",
+                "label": "CTA Button URL",
+                "required": false,
+                "default": "#"
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light",
+                    "transparent"
+                ]
+            }
+        ]
+    },
+    "NavBarCentered": {
+        "name": "NavBarCentered",
+        "category": "Navigation",
+        "description": "Centered logo navigation bar with left and right link groups",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "logoUrl",
+                "type": "image",
+                "label": "Logo",
+                "required": true
+            },
+            {
+                "key": "leftLinks",
+                "type": "list",
+                "label": "Left Links",
+                "required": true,
+                "default": [],
+                "maxItems": 3,
+                "itemShape": {
+                    "label": "text",
+                    "url": "text"
+                }
+            },
+            {
+                "key": "rightLinks",
+                "type": "list",
+                "label": "Right Links",
+                "required": true,
+                "default": [],
+                "maxItems": 3,
+                "itemShape": {
+                    "label": "text",
+                    "url": "text"
+                }
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "MobileMenu": {
+        "name": "MobileMenu",
+        "category": "Navigation",
+        "description": "Responsive mobile slide-out navigation menu",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "logoUrl",
+                "type": "image",
+                "label": "Logo",
+                "required": true
+            },
+            {
+                "key": "links",
+                "type": "list",
+                "label": "Menu Links",
+                "required": true,
+                "default": [],
+                "maxItems": 6,
+                "itemShape": {
+                    "label": "text",
+                    "url": "text"
+                }
+            },
+            {
+                "key": "ctaLabel",
+                "type": "text",
+                "label": "CTA Button Label",
+                "required": false,
+                "default": "Get Started"
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "HeroSplit": {
+        "name": "HeroSplit",
+        "category": "Hero",
+        "description": "Split-layout hero with text on one side and image on the other",
+        "variants": [
+            "dark",
+            "light",
+            "brand"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true,
+                "maxWords": 8
+            },
+            {
+                "key": "subtext",
+                "type": "text",
+                "label": "Subtext",
+                "required": true,
+                "maxWords": 25
+            },
+            {
+                "key": "ctaLabel",
+                "type": "text",
+                "label": "CTA Label",
+                "required": true,
+                "default": "Get Started"
+            },
+            {
+                "key": "ctaUrl",
+                "type": "text",
+                "label": "CTA URL",
+                "required": true,
+                "default": "#"
+            },
+            {
+                "key": "secondaryCtaLabel",
+                "type": "text",
+                "label": "Secondary CTA Label",
+                "required": false
+            },
+            {
+                "key": "imageQuery",
+                "type": "text",
+                "label": "Hero Image",
+                "required": true,
+                "unsplashKeyword": true
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light",
+                    "brand"
+                ]
+            }
+        ]
+    },
+    "HeroCentered": {
+        "name": "HeroCentered",
+        "category": "Hero",
+        "description": "Centered hero section with badge, headline, and dual CTAs",
+        "variants": [
+            "dark",
+            "light",
+            "brand"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "badge",
+                "type": "text",
+                "label": "Badge Text",
+                "required": false,
+                "maxWords": 4
+            },
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true,
+                "maxWords": 10
+            },
+            {
+                "key": "subtext",
+                "type": "text",
+                "label": "Subtext",
+                "required": true,
+                "maxWords": 30
+            },
+            {
+                "key": "ctaLabel",
+                "type": "text",
+                "label": "CTA Label",
+                "required": true,
+                "default": "Get Started"
+            },
+            {
+                "key": "ctaUrl",
+                "type": "text",
+                "label": "CTA URL",
+                "required": true,
+                "default": "#"
+            },
+            {
+                "key": "secondaryCtaLabel",
+                "type": "text",
+                "label": "Secondary CTA Label",
+                "required": false
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light",
+                    "brand"
+                ]
+            }
+        ]
+    },
+    "HeroFullBleed": {
+        "name": "HeroFullBleed",
+        "category": "Hero",
+        "description": "Full-width background image hero with text overlay",
+        "variants": [
+            "dark",
+            "brand"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true,
+                "maxWords": 8
+            },
+            {
+                "key": "subtext",
+                "type": "text",
+                "label": "Subtext",
+                "required": true,
+                "maxWords": 20
+            },
+            {
+                "key": "ctaLabel",
+                "type": "text",
+                "label": "CTA Label",
+                "required": true,
+                "default": "Learn More"
+            },
+            {
+                "key": "imageQuery",
+                "type": "text",
+                "label": "Background Image",
+                "required": true,
+                "unsplashKeyword": true
+            },
+            {
+                "key": "overlayOpacity",
+                "type": "number",
+                "label": "Overlay Opacity (%)",
+                "required": false,
+                "default": 60
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "brand"
+                ]
+            }
+        ]
+    },
+    "HeroMinimal": {
+        "name": "HeroMinimal",
+        "category": "Hero",
+        "description": "Minimal text-only hero with eyebrow and large headline",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "eyebrow",
+                "type": "text",
+                "label": "Eyebrow Text",
+                "required": false,
+                "maxWords": 5
+            },
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true,
+                "maxWords": 12
+            },
+            {
+                "key": "subtext",
+                "type": "text",
+                "label": "Subtext",
+                "required": true,
+                "maxWords": 30
+            },
+            {
+                "key": "ctaLabel",
+                "type": "text",
+                "label": "CTA Label",
+                "required": false,
+                "default": "Learn More"
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "HeroWithVideo": {
+        "name": "HeroWithVideo",
+        "category": "Hero",
+        "description": "Hero section with embedded background video and fallback image",
+        "variants": [
+            "dark"
+        ],
+        "allowedPages": [
+            "home",
+            "landing"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true,
+                "maxWords": 8
+            },
+            {
+                "key": "subtext",
+                "type": "text",
+                "label": "Subtext",
+                "required": true,
+                "maxWords": 25
+            },
+            {
+                "key": "ctaLabel",
+                "type": "text",
+                "label": "CTA Label",
+                "required": true,
+                "default": "Watch Now"
+            },
+            {
+                "key": "videoUrl",
+                "type": "text",
+                "label": "Video URL",
+                "required": true
+            },
+            {
+                "key": "fallbackImageQuery",
+                "type": "text",
+                "label": "Fallback Image",
+                "required": true,
+                "unsplashKeyword": true
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark"
+                ]
+            }
+        ]
+    },
+    "HeroWithForm": {
+        "name": "HeroWithForm",
+        "category": "Hero",
+        "description": "Hero section with an inline lead-capture form",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "home",
+            "landing",
+            "contact"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true,
+                "maxWords": 8
+            },
+            {
+                "key": "subtext",
+                "type": "text",
+                "label": "Subtext",
+                "required": true,
+                "maxWords": 25
+            },
+            {
+                "key": "formTitle",
+                "type": "text",
+                "label": "Form Title",
+                "required": true,
+                "default": "Get in Touch"
+            },
+            {
+                "key": "formFields",
+                "type": "list",
+                "label": "Form Fields",
+                "required": true,
+                "maxItems": 3,
+                "itemShape": {
+                    "label": "text",
+                    "type": "text",
+                    "placeholder": "text"
+                }
+            },
+            {
+                "key": "submitLabel",
+                "type": "text",
+                "label": "Submit Button Label",
+                "required": true,
+                "default": "Submit"
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "FeatureGrid": {
+        "name": "FeatureGrid",
+        "category": "Features",
+        "description": "Multi-column grid of feature cards with icons",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 2,
+        "slots": [
+            {
+                "key": "eyebrow",
+                "type": "text",
+                "label": "Eyebrow Text",
+                "required": false
+            },
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true,
+                "maxWords": 10
+            },
+            {
+                "key": "subtext",
+                "type": "text",
+                "label": "Subtext",
+                "required": false,
+                "maxWords": 25
+            },
+            {
+                "key": "items",
+                "type": "list",
+                "label": "Feature Items",
+                "required": true,
+                "minItems": 3,
+                "maxItems": 6,
+                "itemShape": {
+                    "icon": "text",
+                    "title": "text",
+                    "desc": "text"
+                }
+            },
+            {
+                "key": "columns",
+                "type": "select",
+                "label": "Columns",
+                "required": true,
+                "default": "3",
+                "options": [
+                    "2",
+                    "3"
+                ]
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "FeatureList": {
+        "name": "FeatureList",
+        "category": "Features",
+        "description": "Alternating image-and-text feature sections",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 2,
+        "slots": [
+            {
+                "key": "eyebrow",
+                "type": "text",
+                "label": "Eyebrow Text",
+                "required": false
+            },
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true,
+                "maxWords": 10
+            },
+            {
+                "key": "items",
+                "type": "list",
+                "label": "Feature Items",
+                "required": true,
+                "minItems": 2,
+                "maxItems": 4,
+                "itemShape": {
+                    "title": "text",
+                    "desc": "text",
+                    "imageQuery": "text",
+                    "imageSide": "text"
+                }
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "FeatureTabbed": {
+        "name": "FeatureTabbed",
+        "category": "Features",
+        "description": "Tabbed feature showcase with image previews per tab",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true
+            },
+            {
+                "key": "tabs",
+                "type": "list",
+                "label": "Tabs",
+                "required": true,
+                "minItems": 3,
+                "maxItems": 5,
+                "itemShape": {
+                    "label": "text",
+                    "title": "text",
+                    "desc": "text",
+                    "imageQuery": "text"
+                }
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "FeatureSingle": {
+        "name": "FeatureSingle",
+        "category": "Features",
+        "description": "Single feature spotlight with image and bullet points",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 2,
+        "slots": [
+            {
+                "key": "eyebrow",
+                "type": "text",
+                "label": "Eyebrow Text",
+                "required": false
+            },
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true,
+                "maxWords": 12
+            },
+            {
+                "key": "desc",
+                "type": "text",
+                "label": "Description",
+                "required": true,
+                "maxWords": 40
+            },
+            {
+                "key": "imageQuery",
+                "type": "text",
+                "label": "Feature Image",
+                "required": true,
+                "unsplashKeyword": true
+            },
+            {
+                "key": "imageSide",
+                "type": "select",
+                "label": "Image Side",
+                "required": true,
+                "default": "right",
+                "options": [
+                    "left",
+                    "right"
+                ]
+            },
+            {
+                "key": "bullets",
+                "type": "list",
+                "label": "Bullet Points",
+                "required": false,
+                "maxItems": 4,
+                "itemShape": {
+                    "text": "text"
+                }
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "TestimonialGrid": {
+        "name": "TestimonialGrid",
+        "category": "Social Proof",
+        "description": "Grid layout of customer testimonial cards",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true,
+                "default": "What Our Clients Say"
+            },
+            {
+                "key": "items",
+                "type": "list",
+                "label": "Testimonials",
+                "required": true,
+                "minItems": 3,
+                "maxItems": 6,
+                "itemShape": {
+                    "quote": "text",
+                    "name": "text",
+                    "role": "text",
+                    "company": "text",
+                    "avatarQuery": "text"
+                }
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "TestimonialCarousel": {
+        "name": "TestimonialCarousel",
+        "category": "Social Proof",
+        "description": "Sliding carousel of customer testimonials",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true,
+                "default": "What Our Clients Say"
+            },
+            {
+                "key": "items",
+                "type": "list",
+                "label": "Testimonials",
+                "required": true,
+                "minItems": 3,
+                "maxItems": 8,
+                "itemShape": {
+                    "quote": "text",
+                    "name": "text",
+                    "role": "text",
+                    "company": "text",
+                    "avatarQuery": "text"
+                }
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "LogoBar": {
+        "name": "LogoBar",
+        "category": "Social Proof",
+        "description": "Horizontal strip of partner or client logos",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": false,
+                "default": "Trusted by leading companies"
+            },
+            {
+                "key": "logos",
+                "type": "list",
+                "label": "Logos",
+                "required": true,
+                "minItems": 4,
+                "maxItems": 8,
+                "itemShape": {
+                    "name": "text",
+                    "query": "text"
+                }
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "Metrics": {
+        "name": "Metrics",
+        "category": "Social Proof",
+        "description": "Key business metrics displayed as large animated counters",
+        "variants": [
+            "dark",
+            "light",
+            "brand"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": false
+            },
+            {
+                "key": "subtext",
+                "type": "text",
+                "label": "Subtext",
+                "required": false
+            },
+            {
+                "key": "items",
+                "type": "list",
+                "label": "Metrics",
+                "required": true,
+                "minItems": 3,
+                "maxItems": 4,
+                "itemShape": {
+                    "number": "number",
+                    "suffix": "text",
+                    "label": "text"
+                }
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light",
+                    "brand"
+                ]
+            }
+        ]
+    },
+    "ContentBlock": {
+        "name": "ContentBlock",
+        "category": "Content",
+        "description": "Versatile content section with image, text, and CTA",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 3,
+        "slots": [
+            {
+                "key": "eyebrow",
+                "type": "text",
+                "label": "Eyebrow Text",
+                "required": false
+            },
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true,
+                "maxWords": 12
+            },
+            {
+                "key": "body",
+                "type": "text",
+                "label": "Body Text",
+                "required": true,
+                "maxWords": 80
+            },
+            {
+                "key": "ctaLabel",
+                "type": "text",
+                "label": "CTA Label",
+                "required": false
+            },
+            {
+                "key": "ctaUrl",
+                "type": "text",
+                "label": "CTA URL",
+                "required": false
+            },
+            {
+                "key": "imageQuery",
+                "type": "text",
+                "label": "Image",
+                "required": true,
+                "unsplashKeyword": true
+            },
+            {
+                "key": "imageSide",
+                "type": "select",
+                "label": "Image Side",
+                "required": true,
+                "default": "right",
+                "options": [
+                    "left",
+                    "right"
+                ]
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "Gallery": {
+        "name": "Gallery",
+        "category": "Content",
+        "description": "Image gallery with grid or masonry layout options",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true
+            },
+            {
+                "key": "subtext",
+                "type": "text",
+                "label": "Subtext",
+                "required": false
+            },
+            {
+                "key": "items",
+                "type": "list",
+                "label": "Gallery Items",
+                "required": true,
+                "minItems": 4,
+                "maxItems": 9,
+                "itemShape": {
+                    "imageQuery": "text",
+                    "caption": "text"
+                }
+            },
+            {
+                "key": "layout",
+                "type": "select",
+                "label": "Layout",
+                "required": true,
+                "default": "grid",
+                "options": [
+                    "grid",
+                    "masonry"
+                ]
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "BlogFeed": {
+        "name": "BlogFeed",
+        "category": "Content",
+        "description": "Blog post preview cards in a responsive grid",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "home",
+            "blog"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true,
+                "default": "Latest Posts"
+            },
+            {
+                "key": "subtext",
+                "type": "text",
+                "label": "Subtext",
+                "required": false
+            },
+            {
+                "key": "posts",
+                "type": "list",
+                "label": "Blog Posts",
+                "required": true,
+                "minItems": 3,
+                "maxItems": 6,
+                "itemShape": {
+                    "title": "text",
+                    "excerpt": "text",
+                    "category": "text",
+                    "imageQuery": "text",
+                    "date": "text"
+                }
+            },
+            {
+                "key": "ctaLabel",
+                "type": "text",
+                "label": "View All CTA",
+                "required": false,
+                "default": "View All Posts"
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "FAQ": {
+        "name": "FAQ",
+        "category": "Content",
+        "description": "Expandable FAQ accordion section",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true,
+                "default": "Frequently Asked Questions"
+            },
+            {
+                "key": "subtext",
+                "type": "text",
+                "label": "Subtext",
+                "required": false
+            },
+            {
+                "key": "items",
+                "type": "list",
+                "label": "FAQ Items",
+                "required": true,
+                "minItems": 4,
+                "maxItems": 10,
+                "itemShape": {
+                    "question": "text",
+                    "answer": "text"
+                }
+            },
+            {
+                "key": "layout",
+                "type": "select",
+                "label": "Layout",
+                "required": true,
+                "default": "single",
+                "options": [
+                    "single",
+                    "two-col"
+                ]
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "Timeline": {
+        "name": "Timeline",
+        "category": "Content",
+        "description": "Vertical timeline showing company milestones or process steps",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true
+            },
+            {
+                "key": "subtext",
+                "type": "text",
+                "label": "Subtext",
+                "required": false
+            },
+            {
+                "key": "items",
+                "type": "list",
+                "label": "Timeline Items",
+                "required": true,
+                "minItems": 3,
+                "maxItems": 6,
+                "itemShape": {
+                    "year": "text",
+                    "title": "text",
+                    "desc": "text"
+                }
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "TeamGrid": {
+        "name": "TeamGrid",
+        "category": "Team & About",
+        "description": "Grid of team member cards with photos and bios",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "eyebrow",
+                "type": "text",
+                "label": "Eyebrow Text",
+                "required": false
+            },
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true,
+                "default": "Meet Our Team"
+            },
+            {
+                "key": "subtext",
+                "type": "text",
+                "label": "Subtext",
+                "required": false
+            },
+            {
+                "key": "members",
+                "type": "list",
+                "label": "Team Members",
+                "required": true,
+                "minItems": 3,
+                "maxItems": 8,
+                "itemShape": {
+                    "name": "text",
+                    "role": "text",
+                    "bio": "text",
+                    "avatarQuery": "text",
+                    "linkedin": "text"
+                }
+            },
+            {
+                "key": "columns",
+                "type": "select",
+                "label": "Columns",
+                "required": true,
+                "default": "3",
+                "options": [
+                    "3",
+                    "4"
+                ]
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "AboutSplit": {
+        "name": "AboutSplit",
+        "category": "Team & About",
+        "description": "Split about section with image, text, and company details",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "eyebrow",
+                "type": "text",
+                "label": "Eyebrow Text",
+                "required": false
+            },
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true,
+                "maxWords": 12
+            },
+            {
+                "key": "body",
+                "type": "text",
+                "label": "Body Text",
+                "required": true,
+                "maxWords": 80
+            },
+            {
+                "key": "ctaLabel",
+                "type": "text",
+                "label": "CTA Label",
+                "required": false
+            },
+            {
+                "key": "imageQuery",
+                "type": "text",
+                "label": "About Image",
+                "required": true,
+                "unsplashKeyword": true
+            },
+            {
+                "key": "imageSide",
+                "type": "select",
+                "label": "Image Side",
+                "required": true,
+                "default": "right",
+                "options": [
+                    "left",
+                    "right"
+                ]
+            },
+            {
+                "key": "founded",
+                "type": "text",
+                "label": "Founded Year",
+                "required": false
+            },
+            {
+                "key": "teamSize",
+                "type": "text",
+                "label": "Team Size",
+                "required": false
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "Values": {
+        "name": "Values",
+        "category": "Team & About",
+        "description": "Company values or principles displayed as icon cards",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "eyebrow",
+                "type": "text",
+                "label": "Eyebrow Text",
+                "required": false
+            },
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true,
+                "default": "Our Values"
+            },
+            {
+                "key": "subtext",
+                "type": "text",
+                "label": "Subtext",
+                "required": false
+            },
+            {
+                "key": "items",
+                "type": "list",
+                "label": "Values",
+                "required": true,
+                "minItems": 3,
+                "maxItems": 6,
+                "itemShape": {
+                    "icon": "text",
+                    "title": "text",
+                    "desc": "text"
+                }
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "PricingTable": {
+        "name": "PricingTable",
+        "category": "Conversion",
+        "description": "Pricing tiers comparison table with feature lists",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "pricing",
+            "home",
+            "landing"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "eyebrow",
+                "type": "text",
+                "label": "Eyebrow Text",
+                "required": false
+            },
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true,
+                "default": "Choose Your Plan"
+            },
+            {
+                "key": "subtext",
+                "type": "text",
+                "label": "Subtext",
+                "required": false
+            },
+            {
+                "key": "tiers",
+                "type": "list",
+                "label": "Pricing Tiers",
+                "required": true,
+                "minItems": 2,
+                "maxItems": 3,
+                "itemShape": {
+                    "name": "text",
+                    "price": "text",
+                    "period": "text",
+                    "desc": "text",
+                    "features": "list",
+                    "ctaLabel": "text",
+                    "highlighted": "boolean"
+                }
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "ContactForm": {
+        "name": "ContactForm",
+        "category": "Conversion",
+        "description": "Contact form with customizable fields and contact info sidebar",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "contact",
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true,
+                "default": "Get in Touch"
+            },
+            {
+                "key": "subtext",
+                "type": "text",
+                "label": "Subtext",
+                "required": false
+            },
+            {
+                "key": "fields",
+                "type": "list",
+                "label": "Form Fields",
+                "required": true,
+                "minItems": 3,
+                "maxItems": 6,
+                "itemShape": {
+                    "label": "text",
+                    "type": "text",
+                    "placeholder": "text",
+                    "required": "boolean"
+                }
+            },
+            {
+                "key": "submitLabel",
+                "type": "text",
+                "label": "Submit Button Label",
+                "required": true,
+                "default": "Send Message"
+            },
+            {
+                "key": "successMessage",
+                "type": "text",
+                "label": "Success Message",
+                "required": false,
+                "default": "Thank you! We'll be in touch soon."
+            },
+            {
+                "key": "phone",
+                "type": "text",
+                "label": "Phone Number",
+                "required": false
+            },
+            {
+                "key": "email",
+                "type": "text",
+                "label": "Email Address",
+                "required": false
+            },
+            {
+                "key": "address",
+                "type": "text",
+                "label": "Address",
+                "required": false
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "CTABanner": {
+        "name": "CTABanner",
+        "category": "Conversion",
+        "description": "Full-width call-to-action banner with gradient options",
+        "variants": [
+            "dark",
+            "light",
+            "brand",
+            "gradient"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 2,
+        "slots": [
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true,
+                "maxWords": 12
+            },
+            {
+                "key": "subtext",
+                "type": "text",
+                "label": "Subtext",
+                "required": false,
+                "maxWords": 25
+            },
+            {
+                "key": "ctaLabel",
+                "type": "text",
+                "label": "CTA Label",
+                "required": true,
+                "default": "Get Started"
+            },
+            {
+                "key": "ctaUrl",
+                "type": "text",
+                "label": "CTA URL",
+                "required": true,
+                "default": "#"
+            },
+            {
+                "key": "secondaryCtaLabel",
+                "type": "text",
+                "label": "Secondary CTA Label",
+                "required": false
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "brand",
+                "options": [
+                    "dark",
+                    "light",
+                    "brand",
+                    "gradient"
+                ]
+            }
+        ]
+    },
+    "NewsletterSignup": {
+        "name": "NewsletterSignup",
+        "category": "Conversion",
+        "description": "Newsletter email signup section with disclaimer",
+        "variants": [
+            "dark",
+            "light",
+            "brand"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true,
+                "maxWords": 10,
+                "default": "Stay in the Loop"
+            },
+            {
+                "key": "subtext",
+                "type": "text",
+                "label": "Subtext",
+                "required": false,
+                "maxWords": 25
+            },
+            {
+                "key": "placeholder",
+                "type": "text",
+                "label": "Input Placeholder",
+                "required": false,
+                "default": "Enter your email"
+            },
+            {
+                "key": "submitLabel",
+                "type": "text",
+                "label": "Submit Button Label",
+                "required": false,
+                "default": "Subscribe"
+            },
+            {
+                "key": "disclaimer",
+                "type": "text",
+                "label": "Disclaimer Text",
+                "required": false
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light",
+                    "brand"
+                ]
+            }
+        ]
+    },
+    "FooterFull": {
+        "name": "FooterFull",
+        "category": "Footer",
+        "description": "Multi-column footer with logo, link groups, and social icons",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "logoUrl",
+                "type": "image",
+                "label": "Logo",
+                "required": true
+            },
+            {
+                "key": "tagline",
+                "type": "text",
+                "label": "Tagline",
+                "required": false
+            },
+            {
+                "key": "columns",
+                "type": "list",
+                "label": "Link Columns",
+                "required": true,
+                "minItems": 2,
+                "maxItems": 4,
+                "itemShape": {
+                    "title": "text",
+                    "links": "list"
+                }
+            },
+            {
+                "key": "socialLinks",
+                "type": "list",
+                "label": "Social Links",
+                "required": false,
+                "itemShape": {
+                    "platform": "text",
+                    "url": "text"
+                }
+            },
+            {
+                "key": "copyright",
+                "type": "text",
+                "label": "Copyright Text",
+                "required": true
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "FooterMinimal": {
+        "name": "FooterMinimal",
+        "category": "Footer",
+        "description": "Simple single-row footer with links and social icons",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "logoUrl",
+                "type": "image",
+                "label": "Logo",
+                "required": true
+            },
+            {
+                "key": "links",
+                "type": "list",
+                "label": "Footer Links",
+                "required": false,
+                "maxItems": 6,
+                "itemShape": {
+                    "label": "text",
+                    "url": "text"
+                }
+            },
+            {
+                "key": "socialLinks",
+                "type": "list",
+                "label": "Social Links",
+                "required": false,
+                "itemShape": {
+                    "platform": "text",
+                    "url": "text"
+                }
+            },
+            {
+                "key": "copyright",
+                "type": "text",
+                "label": "Copyright Text",
+                "required": true
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    },
+    "FooterWithNewsletter": {
+        "name": "FooterWithNewsletter",
+        "category": "Footer",
+        "description": "Footer with integrated newsletter signup and link columns",
+        "variants": [
+            "dark",
+            "light"
+        ],
+        "allowedPages": [
+            "any"
+        ],
+        "maxPerPage": 1,
+        "slots": [
+            {
+                "key": "logoUrl",
+                "type": "image",
+                "label": "Logo",
+                "required": true
+            },
+            {
+                "key": "tagline",
+                "type": "text",
+                "label": "Tagline",
+                "required": false
+            },
+            {
+                "key": "newsletterHeadline",
+                "type": "text",
+                "label": "Newsletter Headline",
+                "required": false,
+                "default": "Subscribe to our newsletter"
+            },
+            {
+                "key": "newsletterPlaceholder",
+                "type": "text",
+                "label": "Newsletter Placeholder",
+                "required": false,
+                "default": "Enter your email"
+            },
+            {
+                "key": "columns",
+                "type": "list",
+                "label": "Link Columns",
+                "required": false,
+                "maxItems": 3,
+                "itemShape": {
+                    "title": "text",
+                    "links": "list"
+                }
+            },
+            {
+                "key": "copyright",
+                "type": "text",
+                "label": "Copyright Text",
+                "required": true
+            },
+            {
+                "key": "variant",
+                "type": "select",
+                "label": "Variant",
+                "required": true,
+                "default": "dark",
+                "options": [
+                    "dark",
+                    "light"
+                ]
+            }
+        ]
+    }
+}

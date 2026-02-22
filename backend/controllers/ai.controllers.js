@@ -1,9 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import prisma from "../utils/prisma.js";
 import PLAN_LIMITS from "../utils/planLimits.js";
+import { buildSystemPromptContext, getComponent, getComponentSafe } from "../utils/componentRegistry.js";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const geminiModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY);
+const geminiModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Credit check helper
@@ -335,8 +336,6 @@ STRICT RULES:
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GET /api/ai/chat/:pageComponentId
-// ─────────────────────────────────────────────────────────────────────────────
 const getChatHistory = async (req, res) => {
     try {
         const { pageComponentId } = req.params;
@@ -365,4 +364,261 @@ const getChatHistory = async (req, res) => {
     }
 };
 
-export { suggestLayout, generateComponent, chatComponent, getChatHistory };
+// ─── Shared Gemini Methods ───────────────────────────────────────────────────
+
+const JSON_SUFFIX = `\n\nCRITICAL: Return ONLY raw JSON. No markdown. No backticks. No explanation. Start your response with { or [ and end with } or ].`;
+
+function cleanJSON(raw) {
+    return raw
+        .replace(/^```json\n?/, '')
+        .replace(/\n?```$/, '')
+        .trim();
+}
+
+function getComponentSchema(componentName) {
+    const comp = getComponentSafe(componentName);
+    return comp ? JSON.stringify(comp, null, 2) : "No schema available for this custom component type.";
+}
+
+async function callGemini(systemPrompt, userMessage) {
+    const result = await geminiModel.generateContent({
+        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+        generationConfig: {
+            temperature: 0.7,
+            responseMimeType: 'application/json',
+        },
+        systemInstruction: systemPrompt + JSON_SUFFIX,
+    });
+    return cleanJSON(result.response.text());
+}
+
+// ─── New Site Builder AI Endpoints ───────────────────────────────────────────
+
+const generateStructure = async (req, res) => {
+    try {
+        await checkCredits(req.user.tenantId);
+
+        const { prompt, businessType, siteName, planPageLimit = 5 } = req.body;
+
+        const systemPrompt = `You are a website structure planner for a professional website builder.
+
+Your job is to decide which pages a website needs and which sections go on each page.
+
+AVAILABLE COMPONENTS (use ONLY these exact names, no others):
+${buildSystemPromptContext()}
+
+STRICT RULES:
+1. Every page MUST start with NavBar or NavBarCentered
+2. Every page MUST end with FooterFull, FooterMinimal, or FooterWithNewsletter
+3. Hero sections (HeroSplit, HeroCentered, HeroFullBleed, HeroMinimal, HeroWithVideo, HeroWithForm) must be second — never use more than one hero per page
+4. These components can appear MAXIMUM ONCE per page: all Hero types, PricingTable
+5. Maximum 8 sections per page, minimum 3
+6. Maximum pages allowed: ${planPageLimit}
+7. Return ONLY valid JSON, no explanation, no markdown, no backticks
+
+RETURN FORMAT:
+{
+  "summary": "2-3 sentence description of the site you planned",
+  "pages": [
+    {
+      "name": "Home",
+      "slug": "/",
+      "pageType": "home",
+      "sections": ["NavBar", "HeroSplit", "LogoBar", "FeatureGrid", "FooterFull"]
+    }
+  ]
+}`;
+
+        const userMessage = `Business type: ${businessType}
+Site name: ${siteName}
+Description: ${prompt}
+Max pages: ${planPageLimit}
+
+Plan the best website structure for this business.`;
+
+        const text = await callGemini(systemPrompt, userMessage);
+        const parsed = JSON.parse(text);
+
+        const NAV_NAMES = ['NavBar', 'NavBarCentered'];
+        const FOOTER_NAMES = ['FooterFull', 'FooterMinimal', 'FooterWithNewsletter'];
+        const HERO_NAMES = [
+            'HeroSplit', 'HeroCentered', 'HeroFullBleed',
+            'HeroMinimal', 'HeroWithVideo', 'HeroWithForm',
+        ];
+
+        const fixedPages = parsed.pages.map((page) => {
+            let sections = [...page.sections];
+
+            if (sections.length === 0 || !NAV_NAMES.includes(sections[0])) {
+                sections = sections.filter((s) => !NAV_NAMES.includes(s));
+                sections.unshift('NavBar');
+            }
+
+            if (sections.length === 0 || !FOOTER_NAMES.includes(sections[sections.length - 1])) {
+                sections = sections.filter((s) => !FOOTER_NAMES.includes(s));
+                sections.push('FooterFull');
+            }
+
+            const heroIdx = sections.findIndex((s) => HERO_NAMES.includes(s));
+            if (heroIdx > 1) {
+                const [hero] = sections.splice(heroIdx, 1);
+                sections.splice(1, 0, hero);
+            }
+
+            if (sections.length > 8) {
+                const nav = sections[0];
+                const footer = sections[sections.length - 1];
+                const middle = sections.slice(1, -1).slice(0, 6);
+                sections = [nav, ...middle, footer];
+            }
+
+            return { name: page.name, slug: page.slug, sections };
+        });
+
+        // Increment tenant usage
+        await prisma.tenant.update({
+            where: { id: req.user.tenantId },
+            data: { aiCreditsUsed: { increment: 1 } },
+        });
+
+        return res.status(200).json({ success: true, pages: fixedPages, summary: parsed.summary });
+    } catch (error) {
+        if (error.status === 429) {
+            return res.status(429).json({ success: false, message: error.message });
+        }
+        console.error("Generate structure error:", error);
+        return res.status(500).json({ success: false, message: "Internal server error", error: error.message });
+    }
+};
+
+const generateContent = async (req, res) => {
+    try {
+        await checkCredits(req.user.tenantId);
+
+        const { pageName, pageType, sections, siteContext } = req.body;
+
+        const schemas = sections
+            .map((name) => {
+                try {
+                    return `### ${name}\n${getComponentSchema(name)}`;
+                } catch {
+                    return '';
+                }
+            })
+            .filter(Boolean)
+            .join('\n\n');
+
+        const systemPrompt = `You are a professional copywriter and web content generator.
+
+You will be given a list of website sections and you must fill in the content for each one.
+
+SITE CONTEXT:
+- Site name: ${siteContext.siteName}
+- Business type: ${siteContext.businessType}
+- Description: ${siteContext.prompt}
+- Brand color: ${siteContext.brandColor}
+
+COMPONENT SCHEMAS:
+${schemas}
+
+RULES:
+1. Write real, specific, professional copy — never use Lorem Ipsum
+2. Headlines should be punchy, max words as specified per slot
+3. For imageQuery slots: write 2-4 descriptive keywords for Unsplash search that match the business type and tone. Examples: "fintech office professional", "creative studio colorful workspace", "restaurant food elegant"
+4. For avatarQuery slots: write "professional headshot [gender] [ethnicity]" — vary across testimonials/team
+5. For icon slots: write a single relevant emoji
+6. Keep tone consistent with businessType
+7. Return ONLY valid JSON array, no explanation, no markdown, no backticks
+
+RETURN FORMAT — a JSON array, one object per section:
+[
+  {
+    "componentType": "HeroSplit",
+    "variant": "dark",
+    "slots": {
+      "headline": "actual headline here",
+      "subtext": "actual subtext here",
+      "ctaLabel": "Get started",
+      "ctaUrl": "#contact",
+      "imageQuery": "fintech office professional"
+    }
+  }
+]`;
+
+        const userMessage = `Page: ${pageName}
+Sections to fill: ${sections.join(', ')}
+
+Generate compelling content for all sections on this page.`;
+
+        const text = await callGemini(systemPrompt, userMessage);
+
+        await prisma.tenant.update({
+            where: { id: req.user.tenantId },
+            data: { aiCreditsUsed: { increment: 1 } },
+        });
+
+        return res.status(200).json(JSON.parse(text));
+    } catch (error) {
+        if (error.status === 429) {
+            return res.status(429).json({ success: false, message: error.message });
+        }
+        console.error("Generate content error:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+const editSection = async (req, res) => {
+    try {
+        await checkCredits(req.user.tenantId);
+
+        const { instruction, currentSection, siteContext } = req.body;
+        const schema = getComponentSchema(currentSection.componentType);
+
+        const systemPrompt = `You are editing a single website section based on a user instruction.
+You must return the complete updated section with all slots filled.
+Return ONLY valid JSON, no explanation, no markdown.
+
+Current section type: ${currentSection.componentType}
+Schema for this component: ${schema}
+
+Site context:
+- Site name: ${siteContext.siteName}
+- Brand color: ${siteContext.brandColor}
+- Business type: ${siteContext.businessType}
+
+Current slot values:
+${JSON.stringify(currentSection.slots, null, 2)}
+
+RULES:
+1. Keep the exact same JSON structure for slots.
+2. If the user asks for a new image, update any relevant image slots (e.g. "imageQuery", "imageUrl", "image", "src") with 2-4 descriptive keywords for an Unsplash search (e.g. "ice cream delicious", "office professional"). Do NOT provide raw URLs unless requested.
+
+Return format:
+{
+  "componentType": "same as input",
+  "variant": "dark|light|brand",
+  "slots": { ...all slots filled }
+}`;
+
+        const text = await callGemini(systemPrompt, instruction);
+
+        // Costs less
+        await prisma.tenant.update({
+            where: { id: req.user.tenantId },
+            data: { aiCreditsUsed: { increment: 1 } }, // Using 1 for simplicity of integer type in Prisma schema
+        });
+
+        return res.status(200).json(JSON.parse(text));
+    } catch (error) {
+        if (error.status === 429) {
+            return res.status(429).json({ success: false, message: error.message });
+        }
+        console.error("Edit section error:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+export {
+    suggestLayout, generateComponent, chatComponent, getChatHistory,
+    generateStructure, generateContent, editSection
+};
