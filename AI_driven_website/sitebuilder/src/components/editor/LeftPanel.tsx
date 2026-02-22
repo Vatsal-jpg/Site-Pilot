@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, Send, Loader2, History, Layers } from 'lucide-react';
+import { Sparkles, Send, Loader2, History, Layers, Palette } from 'lucide-react';
 import { getAllComponents } from '@/lib/componentRegistry';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
+import BrandingPanel from './BrandingPanel';
 
 interface LeftPanelProps {
     siteId: string;
@@ -20,7 +21,7 @@ export default function LeftPanel({
     onRestoreVersion
 }: LeftPanelProps) {
     const { showToast } = useToast();
-    const [activeTab, setActiveTab] = useState<'blocks' | 'ai' | 'history'>('blocks');
+    const [activeTab, setActiveTab] = useState<'blocks' | 'ai' | 'history' | 'branding'>('blocks');
     const [aiInput, setAiInput] = useState('');
     const [versions, setVersions] = useState<any[]>([]);
     const [loadingVersions, setLoadingVersions] = useState(false);
@@ -93,9 +94,17 @@ export default function LeftPanel({
                 >
                     <History className="w-4 h-4" />
                 </button>
+                <button
+                    onClick={() => setActiveTab('branding')}
+                    className={`flex-1 flex justify-center py-2 rounded-lg transition ${activeTab === 'branding' ? 'bg-[#2a2a2a] text-pink-400' : 'text-gray-500 hover:text-pink-300 hover:bg-[#1a1a1a]'}`}
+                    title="Branding"
+                >
+                    <Palette className="w-4 h-4" />
+                </button>
             </div>
 
             <div className="flex-1 overflow-y-auto">
+                {activeTab === 'branding' && <BrandingPanel siteId={siteId} />}
                 {activeTab === 'blocks' && (
                     <div className="p-3">
                         <h3 className="text-[10px] uppercase tracking-widest text-gray-500 font-semibold mb-2">Components</h3>

@@ -13,19 +13,19 @@ export interface BrandTokens {
   uploadedImages: string[];
 }
 
-export function getBrandTokens(site: Site): BrandTokens {
-  const palette = site.palette || null;
+export function getBrandTokens(site: Site, branding?: any): BrandTokens {
+  const palette = site.palette || branding?.palette || null;
 
   return {
-    colorPrimary: palette?.primary || site.brandColor || '#6366f1',
-    colorBg: palette?.bg || '#0f0f0f',
+    colorPrimary: branding?.primaryColor || palette?.primary || site.brandColor || '#6366f1',
+    colorBg: branding?.bgColor || palette?.bg || '#0f0f0f',
     colorSurface: palette?.surface || '#1a1a1a',
     colorText: palette?.text || '#ffffff',
-    colorAccent: palette?.accent || palette?.primary || site.brandColor || '#818cf8',
-    fontHeading: 'Syne',
-    fontBody: 'Inter',
-    borderRadius: '12px',
-    logoUrl: site.logoUrl || undefined,
+    colorAccent: branding?.accentColor || palette?.accent || branding?.primaryColor || site.brandColor || '#818cf8',
+    fontHeading: branding?.fontHeading || 'Syne',
+    fontBody: branding?.fontBody || 'Inter',
+    borderRadius: branding?.borderRadius || '8px',
+    logoUrl: branding?.logoUrl || site.logoUrl || undefined,
     uploadedImages: site.uploadedImages || [],
   };
 }

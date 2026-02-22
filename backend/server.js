@@ -15,6 +15,8 @@ import sitesRouter from "./routes/sites.routes.js"
 import teamRouter from "./routes/team.routes.js"
 import tenantRouter from "./routes/tenant.routes.js"
 import billingRouter from "./routes/billing.routes.js"
+import brandingRouter from "./routes/branding.routes.js"
+import path from "path"
 
 // Middleware imports
 import responseFormatter from "./middlewares/response.js"
@@ -25,6 +27,7 @@ app.use(cors())
 app.use(cookieParser())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")))
 app.use(responseFormatter) // must be BEFORE routes so res.sendResponse is available
 
 // Routes
@@ -39,6 +42,7 @@ app.use("/api/sites", sitesRouter)
 app.use("/api/team", teamRouter)
 app.use("/api/tenant", tenantRouter)
 app.use("/api/billing", billingRouter)
+app.use("/api/sites", brandingRouter)
 
 // Health check
 app.get("/api/health", (req, res) => {

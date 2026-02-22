@@ -108,12 +108,14 @@ model ProjectBranding {
   bodyFont       String  @default("Inter")
   fontHeading    String  @default("Inter")
   fontBody       String  @default("Inter")
+  borderRadius   String  @default("8px")
   logoUrl        String?
   heroImageUrl   String?
   businessName   String?
   tagline        String?
   description    String?
   businessType   String?
+  palette        Json?
   project        Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
@@ -212,20 +214,23 @@ model ComponentChat {
 // ── Supporting models (unchanged) ────────────────────────────────────────────
 
 model Asset {
-  id         String    @id @default(cuid())
-  tenantId   String
-  projectId  String?
-  b2Key      String?
-  b2Url      String?
-  url        String?
-  mimeType   String?
-  fileName   String
-  sizeBytes  BigInt
-  assetType  AssetType @default(general)
-  uploadedBy String?
-  createdAt  DateTime  @default(now())
-  project    Project?  @relation(fields: [projectId], references: [id])
-  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id           String    @id @default(cuid())
+  tenantId     String
+  projectId    String?
+  b2Key        String?
+  b2Url        String?
+  url          String?
+  mimeType     String?
+  fileName     String
+  originalName String?
+  storageKey   String?
+  sizeBytes    Int
+  isLogo       Boolean   @default(false)
+  assetType    AssetType @default(general)
+  uploadedBy   String?
+  createdAt    DateTime  @default(now())
+  project      Project?  @relation(fields: [projectId], references: [id])
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 model Version {

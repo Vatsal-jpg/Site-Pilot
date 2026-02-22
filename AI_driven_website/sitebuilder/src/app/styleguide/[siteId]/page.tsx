@@ -13,10 +13,25 @@ export default function StyleGuidePage() {
     const router = useRouter();
     const siteId = params.siteId as string;
     const [site, setSite] = useState<Site | null>(null);
+    const [branding, setBranding] = useState<any>(null);
     const logoInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         getSite(siteId).then(s => setSite(s));
+
+        const fetchBranding = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`/api/sites/${siteId}/branding`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.branding) setBranding(data.branding);
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        fetchBranding();
     }, [siteId]);
 
     if (!site) {
@@ -27,7 +42,7 @@ export default function StyleGuidePage() {
         );
     }
 
-    const tokens = getBrandTokens(site);
+    const tokens = getBrandTokens(site, branding);
 
     // Gather unique components used across all pages
     const usedComponents = new Map<string, Set<string>>();
@@ -61,9 +76,9 @@ export default function StyleGuidePage() {
     const colors = [
         { name: 'Primary', hex: tokens.colorPrimary },
         { name: 'Background', hex: tokens.colorBg },
-        { name: 'Surface', hex: '#1a1a1a' },
+        { name: 'Surface', hex: tokens.colorSurface },
         { name: 'Text', hex: tokens.colorText },
-        { name: 'Muted', hex: '#6b7280' },
+        { name: 'Accent', hex: tokens.colorAccent },
     ];
 
     const typeScale = [
