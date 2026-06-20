@@ -102,13 +102,13 @@ model ProjectBranding {
   bodyFont       String  @default("Inter")
   fontHeading    String  @default("Inter")
   fontBody       String  @default("Inter")
-  borderRadius   String  @default("8px")
   logoUrl        String?
   heroImageUrl   String?
   businessName   String?
   tagline        String?
   description    String?
   businessType   String?
+  borderRadius   String  @default("8px")
   palette        Json?
   project        Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
@@ -204,13 +204,13 @@ model Asset {
   url          String?
   mimeType     String?
   fileName     String
-  originalName String?
-  storageKey   String?
   sizeBytes    Int
-  isLogo       Boolean   @default(false)
   assetType    AssetType @default(general)
   uploadedBy   String?
   createdAt    DateTime  @default(now())
+  isLogo       Boolean   @default(false)
+  originalName String?
+  storageKey   String?
   project      Project?  @relation(fields: [projectId], references: [id])
   tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }

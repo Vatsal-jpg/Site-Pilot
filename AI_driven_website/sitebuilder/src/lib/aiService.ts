@@ -23,6 +23,7 @@ async function callAPI(action: string, payload: unknown, retries = 2): Promise<u
         return res; // Note: api.post already handles returning JSON
     } catch (err: any) {
         if (err.message && err.message.toLowerCase().includes('rate limit')) {
+            console.log(err.message);
             if (retries > 0) {
                 await new Promise((resolve) => setTimeout(resolve, 3000));
                 return callAPI(action, payload, retries - 1);
