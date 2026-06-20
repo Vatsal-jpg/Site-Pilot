@@ -1,6 +1,4 @@
 
-## 8. README GENERATION
-
 
 # SitePilot AI Website Builder
 
